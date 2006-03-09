@@ -7,69 +7,41 @@
 
 /* Changelog
  * ---------
+ * 2006-03-09 Updated to work with latest version of Greasemonkey and removed
+ *            all use of cookies in favour of GM's own storage mechanism.
  * 2005-06-12 Reduced MAX_COOKIE_SIZE to 4000, as setting cookies when close to
  *            the old 4096 limit seems to silently fail.
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
  * -------------------------------------------------------------------------- */
 
 (
-/**
- * Implements a topic ignore list for http://www.rllmukforum.com - an Invision
- * Power Board 2.* based forum. As such, this shouldn't be too hard to tweak
- * for use on other forums which use the same software and default layout.
- * @author Jonathan Buchanan
- */
 function()
 {
     // Check for required Greasemonkey functions
     if (!GM_getValue || !GM_registerMenuCommand)
     {
-        alert("'Rllmuk Topic Ignore List' requires Greasemonkey 0.3 or higher" +
-              " - please upgrade\n\nhttp://greasemonkey.mozdev.org");
+        alert("'Rllmuk Topic Ignore List' is not compatible with the installed version of Greasemonkey");
         return;
     }
 
     /* Configuration
-     ------------------------------------------------------------------------ */
-
+    ------------------------------------------------------------------------- */
     // Determines if topics should be completely removed or added to a
     // toggleable ignore list below the main topic list
-    var TIL_remove;
-    var m = GM_getValue("remove");
-    if (m == undefined) // Deal with first time run
+    var TIL_remove = GM_getValue("remove");
+    if (TIL_remove === undefined)
     {
         GM_setValue("remove", false);
         TIL_remove = false;
     }
-    else
-    {
-        TIL_remove = m;
-    }
 
-    // Name of the cookie used to store the topic numbers on the ignore list
-    var TIL_cookieName = "TILTopicList";
-
-    // Max cookie size constant
-    var MAX_COOKIE_SIZE = 4000;
-
-    /* Script Page Check
-     ------------------------------------------------------------------------ */
-
-    // Don't set up methods or do anything unless we're on a topic list page
-    if (window.location.href.indexOf("showforum=") != -1
-        || window.location.href.indexOf("act=SF") != -1
-        || window.location.href.indexOf("searchid=") != -1)
-    {
-
-    /* Utility Methods
-     ------------------------------------------------------------------------ */
-    /**
-     * Given a search term and an array, determines the search term's position
-     * in the array.
-     * @param searchTerm The term to search for.
-     * @param array The array to search in.
-     * @return The search term's position in the array, or -1 if not found.
-     */
+// Don't attempt to apply topic ignoring unless we're on a topic list page
+if (   window.location.href.indexOf("showforum=") != -1
+    || window.location.href.indexOf("act=SF") != -1
+    || window.location.href.indexOf("searchid=") != -1)
+{
+    /* Utility Functions
+    ------------------------------------------------------------------------- */
     function positionInArray(searchTerm, array)
     {
         for(var i = 0; i < array.length; i++)
@@ -80,51 +52,19 @@ function()
             }
         }
         return -1;
-    }
+    };
 
-    /**
-     * Retrieves an array of topic numbers from a cookie with the same name as
-     * the <code>TIL_cookieName</code> varible. Depends on the
-     * <code>TIL_cookieName</code> variable having been set correctly.
-     * @return An array of topic numbers; may be an empty array.
-     */
     function getTopicList()
     {
-        var t = [];
-        for (var i = 0; i < document.cookie.split('; ').length; i++)
-        {
-            var oneCookie = document.cookie.split('; ')[i].split('=');
-            if (oneCookie[0] == TIL_cookieName)
-            {
-                t = oneCookie[1].split(',');
-            }
-        }
-        return t;
-    }
-
-    /**
-     * Stores an array of topic numbers in a cookie named according to the
-     * <code>TIL_cookieName</code> varible. Depends on the <code>TIL_cookieName</code>
-     * variable having been set correctly.
-     */
-    function storeTopicList(t)
-    {
-        var date = new Date();
-        var days = 365;
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        var expires = '; expires=' + date.toGMTString();
-        var value = t.join(',');
-        // If the list is longer than the max cookie size, trim the end
-        while (value.length > MAX_COOKIE_SIZE)
-        {
-            value = value.substring(0, value.lastIndexOf(",") - 1);
-        }
-        document.cookie = TIL_cookieName + '=' + value + expires + '; path=/';
-    }
+        var store = GM_getValue("ignoredTopics")
+        var list = store ? store.split(",") : [];
+        return list;
+    };
 
     /**
      * Inserts a toggleable area into the current page to store ignored topics.
      * Depends on the <code>pageType</code> variable having been set correctly.
+     *
      * @param postTable A DOM object representing the table which holds topic
      *                  listings.
      */
@@ -167,51 +107,101 @@ function()
 </div>';
 
         // Move one element past where we want to insert the toggleable section
-        postTable = postTable.nextSibling;
-        while (postTable.nodeType != 1)
+        for (var i = 0; i < 2; i++)
         {
             postTable = postTable.nextSibling;
-        }
-        postTable = postTable.nextSibling;
-        while (postTable.nodeType != 1)
-        {
-            postTable = postTable.nextSibling;
+            while (postTable.nodeType != 1)
+            {
+                postTable = postTable.nextSibling;
+            }
         }
         // Search pages contain two extra <br> elements
         if (pageType == SEARCH_PAGE)
         {
-            postTable = postTable.nextSibling;
-            while (postTable.nodeType != 1)
+            for (var i = 0; i < 2; i++)
             {
                 postTable = postTable.nextSibling;
-            }
-            postTable = postTable.nextSibling;
-            while (postTable.nodeType != 1)
-            {
-                postTable = postTable.nextSibling;
+                while (postTable.nodeType != 1)
+                {
+                    postTable = postTable.nextSibling;
+                }
             }
         }
-        // Create an element to contain the toggleable section
-        area = document.createElement("DIV");
+
+        area = document.createElement("div");
         area.innerHTML = toggleableSectionHTML;
-        // Insert the toggleable section
         postTable.parentNode.insertBefore(area, postTable);
-        // Indicate that the toggleable section has been inserted
         toggleableSectionInserted = true;
-    }
+    };
+
+    function createIgnoreHandler(topicId)
+    {
+        return function(event)
+        {
+            var control = event.target;
+            var topics = getTopicList();
+
+            // Toggle this topic out of the list if it's already there
+            var notFound = true;
+            for (var j = 0; j < topics.length; j++)
+            {
+                if (topics[j] == topicId)
+                {
+                    topics.splice(j, 1);
+                    notFound = false;
+                }
+            }
+
+            // Otherwise, add this topic to the list and take appropriate action
+            if (notFound)
+            {
+                // Add this topic's id to the front of the list
+                topics.splice(0, 0, topicId);
+                var row = control.parentNode.parentNode;
+                if (TIL_remove)
+                {
+                    // Remove the row completely
+                    row.parentNode.removeChild(row);
+                }
+                else
+                {
+                    // Move the row to the Ignored Topics section
+                    var tbody = row.parentNode;
+                    tbody.removeChild(row);
+                    document.getElementById("TILInsertTarget").appendChild(row);
+                    control.innerHTML = iconPlus;
+                    control.title = "Click to stop ignoring this topic";
+                }
+            }
+            else
+            {
+                // Show that this topic won't be ignored on next page load
+                control.innerHTML = iconCross;
+                control.title = "Click to re-ignore this topic";
+            }
+
+            // Update the stored topic list appropriately
+            if (topics.length > 0)
+            {
+                GM_setValue("ignoredTopics", topics.join(","));
+            }
+            else
+            {
+                GM_setValue("ignoredTopics", undefined);
+            }
+        };
+    };
 
     /* Initialisation
-     ------------------------------------------------------------------------ */
-
-    // Initialise topic number list
+    ------------------------------------------------------------------------- */
     var topics = getTopicList();
 
-    // Page type field and constants
+    /** Page type indicator. */
     var pageType;
     var FORUM_PAGE = 0;
     var SEARCH_PAGE = 1;
 
-    // Toggleable section insertion status
+    /** Toggleable section insertion status. */
     var toggleableSectionInserted = false;
 
     // Images
@@ -222,19 +212,18 @@ function()
         '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIuLi6qqqp%2B' +
         'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQlBGmgntpgpwSWHRVc3v1AgA7">';
 
-    // XPATH query for this page's topic links
+    /** XPATH query for this page's topic links. */
     var xpathQuery;
 
-    // Regular expression for extracting topic numbers
-    var topicNumRegex = /showtopic=([0-9]+)/;
+    /** Regular expression for extracting topic ids. */
+    var topicIdRegex = /showtopic=([0-9]+)/;
 
-    // Initialise active topics list
+    /** Active topics list. */
     var activeTopics = [];
 
     /* Topic Management
-     ------------------------------------------------------------------------ */
-
-    // Set the correct xpath query and page type variable for this page
+    ------------------------------------------------------------------------- */
+    // Set the xpath query and page type indicator for this page
     if (window.location.href.indexOf("searchid=") != -1)
     {
         pageType = SEARCH_PAGE;
@@ -256,100 +245,40 @@ function()
                     XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
                     null);
 
-    // Go to work on the list of topic links
+    // Work on the list of topic links
     for (var i = 0; i < nodes.snapshotLength; i++)
     {
         var node = nodes.snapshotItem(i);
+        var topicId = topicIdRegex.exec(node.href)[1];
 
-        // Extract this topic's unique topic number from the link
-        var topicNum = topicNumRegex.exec(node.href)[1];
-
-        // Check if this topic number in our cookie list
-        var arrayPos = positionInArray(topicNum, topics);
+        // Check if this topic number in our list
+        var arrayPos = positionInArray(topicId, topics);
         var beingIgnored = (arrayPos != -1);
 
-        // Move this topic's number to the head of the active list if found
+        // Move this topic's id to the head of the active list if found
         if (beingIgnored)
         {
             activeTopics.splice(0, 0, topics.splice(arrayPos, 1));
         }
 
-        // Create clickable icon for topic management
-        var a = document.createElement("SPAN");
-        a.className = topicNum;
-        a.style.cursor = "pointer";
-        a.style.margin = "6px";
+        // Create control for topic management
+        var control = document.createElement("span");
+        control.className = topicId;
+        control.style.cursor = "pointer";
+        control.style.margin = "6px";
         if (beingIgnored)
         {
-            a.innerHTML = iconPlus;
-            a.title = "Click to stop ignoring this topic";
+            control.innerHTML = iconPlus;
+            control.alt = "Unignore";
+            control.title = "Click to stop ignoring this topic";
         }
         else
         {
-            a.innerHTML = iconCross;
-            a.title = "Click to ignore this topic";
+            control.innerHTML = iconCross;
+            control.alt = "Ignore";
+            control.title = "Click to ignore this topic";
         }
-        a.onclick = function()
-        {
-            // Refresh the list of topics
-            topics = getTopicList();
-
-            // Toggle this topic out of the list if it's already there
-            var topic = this.className;
-            var notFound = true;
-            for (var j = 0; j < topics.length; j++)
-            {
-                if (topics[j] == topic)
-                {
-                    topics.splice(j, 1);
-                    notFound = false;
-                }
-            }
-
-            // Otherwise, add this topic to the list and take appropriate action
-            if (notFound)
-            {
-                // Add this topic's number to the front of the list
-                topics.splice(0, 0, topic);
-                var row = this.parentNode.parentNode;
-                // Deal with this topic's row, as configured
-                if (TIL_remove)
-                {
-                    // Remove the row completely
-                    row.parentNode.removeChild(row);
-                }
-                else
-                {
-                    // Move the row to the Ignored Topics section
-                    var tbody = row.parentNode;
-                    tbody.removeChild(row);
-                    document.getElementById("TILInsertTarget").appendChild(row);
-                    // Update the topic management icon appropriately
-                    this.innerHTML = iconPlus;
-                    this.title = "Click to stop ignoring this topic";
-                }
-            }
-            else
-            {
-                // Show that this topic won't be ignored on next page load
-                this.innerHTML = iconCross;
-                this.title = "Click to ignore this topic";
-            }
-
-            // Update the topic list cookie appropriately
-            if (topics.length > 0)
-            {
-                // List is non-empty - store it in the cookie
-                storeTopicList(topics);
-            }
-            else
-            {
-                // List is empty - clear the cookie
-                document.cookie =
-                    TIL_cookieName +
-                    '=;expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/';
-            }
-        };
+        control.addEventHandler("click", createClickHandler(topicId), true);
 
         // Find the table cell which will contain the clickable icon
         var cell;
@@ -373,8 +302,8 @@ function()
             cell.removeChild(cell.firstChild);
         }
 
-        // Insert the clickable icon
-        cell.appendChild(a);
+        // Insert the control
+        cell.appendChild(control);
 
         // Insert the toggleable section on the first loop iteration
         if (!toggleableSectionInserted && !TIL_remove)
@@ -408,60 +337,16 @@ function()
     {
         storeTopicList(activeTopics.concat(topics));
     }
-
-    } // End Script Page Check
+}
 
     /* Menu Commands
-     ------------------------------------------------------------------------ */
-
+    ------------------------------------------------------------------------- */
     // Topic Removal Toggling menu command
-    function TIL_toggleRemove()
+    var toggleTo = TIL_remove ? "Off" : "On";
+    GM_registerMenuCommand("Turn Topic Removal " + toggleTo, function()
     {
-        // Flip the currently configure value
         GM_setValue("remove", !TIL_remove);
-        // Reload the page
         window.location.reload();
-    }
-    // Register the menu command with an appropriate label
-    if (TIL_remove)
-    {
-        GM_registerMenuCommand("Turn Topic Removal Off", TIL_toggleRemove);
-    }
-    else
-    {
-        GM_registerMenuCommand("Turn Topic Removal On", TIL_toggleRemove);
-    }
-
-    // Space Checking menu command
-    function TIL_checkSpace()
-    {
-        for (i = 0; i < document.cookie.split('; ').length; i++)
-        {
-            c = document.cookie.split('; ')[i].split('=');
-            if (c[0] == TIL_cookieName)
-            {
-                t = c[1];
-                alert("You're using " +
-                      Math.round((t.length/MAX_COOKIE_SIZE) * 100) +
-                      "% of your Topic Ignore List space (" +
-                      t.length +
-                      "/" + MAX_COOKIE_SIZE + " bytes)\n\n" +
-                      c[1].split(',').length +
-                      " topics are being ignored");
-                return;
-            }
-        }
-        alert("You're not using any of your Topic Ignore List space (0 bytes)");
-    }
-    GM_registerMenuCommand("Show Topic Ignore List Space Usage",
-                           TIL_checkSpace);
+    });
 }
 )();
-
-/* Acknowledgements
- * ----------------
- * Cookie management based on phpBB User Hide
- * - http://s93731204.onlinehome.us/firefox/greasemonkey/phpbb.ignore.user.js
- * With plenty of help from Mark Pilgrim's excellent Dive Into Greasemonkey
- * - http://www.diveintogreasemonkey.org
- * -------------------------------------------------------------------------- */

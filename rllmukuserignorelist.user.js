@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name        Rllmuk User Ignore List
 // @namespace   http://insin.woaf.net/scripts/
-// @description Implements a user ignore list which removes all traces of the users on the list, apart from quotes in other users' posts. Lists can be imported from your Manage Ignored Users page.
+// @description Implements a user ignore list which removes all traces of the users on the list. The ignore list can be synchronised with your Manage Ignored Users settings when viewing that page.
 // @include     http://www.rllmukforum.com/*
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2006-03-08 Updated to work with latest version of Greasemonkey and to remove
+ *            posts containing quotes from ignored users.
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
  * -------------------------------------------------------------------------- */
 
@@ -16,21 +18,12 @@ function()
     // Check for required Greasemonkey functions
     if (!GM_getValue || !GM_registerMenuCommand)
     {
-        alert("'Remove Posts' requires Greasemonkey 0.3 or higher - please " +
-              "upgrade\n\nhttp://greasemonkey.mozdev.org");
+        alert("'Rllmuk User Ignore List' is not compatible with the installed version of Greasemonkey");
         return;
     }
 
     /* Utility Methods
-     ------------------------------------------------------------------------ */
-
-    /**
-     * Given a search term and an array, determines if the search term is in the
-     * array.
-     * @param searchTerm The term to search for.
-     * @param array The array to search in.
-     * @return true if the search term is in the array, false otherwise.
-     */
+    ------------------------------------------------------------------------- */
     function isInArray(searchTerm, array)
     {
         if (array.length == 1)
@@ -46,14 +39,8 @@ function()
             }
         }
         return false;
-    }
+    };
 
-    /**
-     * Determines if a String ends with a given String value.
-     * @param s The String value to test with.
-     * @return true if this String ends with the given String value, false
-     *         otherwise.
-     */
     String.prototype.endsWith = function(s)
     {
         lastIndex = this.lastIndexOf(s);
@@ -62,35 +49,29 @@ function()
 
     /* Configuration & Initialisation
      ------------------------------------------------------------------------ */
-
-    // Get notification status
-    var UIL_notification;
-    var n = GM_getValue("notification");
-    if (n == undefined) // Deal with first time run
+    var UIL_notification = GM_getValue("notification");
+    if (UIL_notification === undefined)
     {
         GM_setValue("notification", true);
         UIL_notification = true;
     }
-    else
+    var UIL_killQuotes = GM_getValue("killQuotes");
+    if (UIL_killQuotes === undefined)
     {
-        UIL_notification = n;
+        GM_setValue("killQuotes", true);
+        UIL_killQuotes = true;
     }
-
-    // Get ignored user list
     var UIL_ignoredUsers = GM_getValue("ignoredUsers");
-
-    // Initialise posts removed counter
     var UIL_postsRemoved = 0;
 
-    /* Post Removal & Notification Display
-     ------------------------------------------------------------------------ */
-
+    /* Post Removal And Notification
+    ------------------------------------------------------------------------- */
     // Remove posts from topic pages
     if ((window.location.href.indexOf("showtopic=") != -1
         || window.location.href.indexOf("act=ST") != -1)
         && UIL_ignoredUsers != undefined)
     {
-        // Create an array of usernames to ignore
+        // Create an array of usernames to be ignored
         var users = UIL_ignoredUsers.split(";");
 
         // Get a list of username links
@@ -108,11 +89,35 @@ function()
             var node = nodes.snapshotItem(i);
             if (isInArray(node.innerHTML, users))
             {
-                // Remove the post
-                node.parentNode.parentNode.parentNode.parentNode.style.display
-                    = "none";
-                // Increment counter
+                node.parentNode.parentNode.parentNode.style.display = "none";
                 UIL_postsRemoved++;
+            }
+        }
+
+        if (UIL_killQuotes)
+        {
+            // Get a list of quote headers
+            var nodes =
+                document.evaluate(
+                "//div[@class='quotetop']",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+            // Remove posts containing quotes from ignored usernames
+            for (var i = 0; i < nodes.snapshotLength; i++)
+            {
+                var node = nodes.snapshotItem(i);
+                for (var j = 0; j < users.length; j++)
+                {
+                    if (node.innerHTML.indexOf("QUOTE(" + users[j]) === 0)
+                    {
+                        node.parentNode.parentNode.parentNode.style.display = "none";
+                        UIL_postsRemoved++;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -161,7 +166,7 @@ function()
     {
         // Create an element to contain the information
         var s = document.createElement("DIV");
-        s.id = "UIL-status";
+        s.id = "UIL-notification";
         s.style.position = "fixed";
         s.style.top = "0px";
         s.style.right = "0px";
@@ -170,72 +175,42 @@ function()
         s.style.color = "white";
         s.style.padding = "3px 6px 5px 8px";
         s.style.fontWeight = "bold";
-        // Build the information
         var r = UIL_postsRemoved + " post";
         if (UIL_postsRemoved > 1) r += "s";
         r += " removed";
-        // Show the information
-        s.innerHTML = r;
+        s.appendChild(document.createTextNode(r));
         document.body.appendChild(s);
 
         // Set up a function to remove the information
-        window.removeUILStatus = function()
+        function removeUILStatus()
         {
-            var st = document.getElementById("UIL-status");
-            /* TODO Find out why changing style rules doesn't affect rendering
-            var op = st.style.opacity;
-            if (op >= 0.1)
-            {
-                st.style.opacity = (op - 0.1);
-                setTimeout("removeUILStatus()", 100);
-            }
-            else
-            {
-                st.parentNode.removeChild(st);
-            }
-            */
+            var st = document.getElementById("UIL-notification");
             st.parentNode.removeChild(st);
         }
-        // Set a timeout to call the above function
-        window.setTimeout("removeUILStatus()", 2500);
+        window.setTimeout(removeUILStatus, 2500);
     }
 
     /* Menu Commands
-     ------------------------------------------------------------------------ */
-
+    ------------------------------------------------------------------------- */
     // Edit Ignored User List menu command
-    function UIL_editIgnoredUsers()
+    GM_registerMenuCommand("Edit Ignored User List", function()
     {
-        // Get the current username list
-        var ignoredUsers = GM_getValue("ignoredUsers");
-        var oldList;
-        if (ignoredUsers != undefined)
-        {
-            oldList = ignoredUsers;
-        }
-        else
-        {
-            oldList = "";
-        }
-
-        // Pop up a prompt containing the current username list
+        var ignoredUsers = GM_getValue("ignoredUsers") || "";
         var newList =
             prompt("Edit ignored usernames, separating usernames with ';'",
-                   oldList);
+                   ignoredUsers);
 
         // If the edit was ok'ed, store the username list
         if (newList != undefined)
         {
             GM_setValue("ignoredUsers", newList);
         }
-    }
-    // Register the menu command
-    GM_registerMenuCommand("Edit Ignored User List", UIL_editIgnoredUsers);
+    });
 
     // Import Ignored User List menu command
     if (window.location.href.endsWith("/index.php?act=UserCP&CODE=ignore"))
     {
-        function UIL_importIgnoredUsers()
+        GM_registerMenuCommand("Import Ignored User List", function()
         {
             // Get a list of username links
             var nodes =
@@ -246,7 +221,6 @@ function()
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
                 null);
 
-            // Create a semicolon-delimited list of usernames
             var newList = "";
             for (var i = 0; i < nodes.snapshotLength; i++)
             {
@@ -254,34 +228,26 @@ function()
                 {
                     newList += ";";
                 }
-                var node = nodes.snapshotItem(i);
-                newList += node.innerHTML;
+                newList += nodes.snapshotItem(i).innerHTML;
             }
-
-            // Store the username list
             GM_setValue("ignoredUsers", newList);
-        }
-        // Register the menu command
-        GM_registerMenuCommand("Import Ignored User List",
-                               UIL_importIgnoredUsers);
+        });
     }
 
-    // User Ignore Notification toggling menu command
-    function UIL_toggleNotification()
+    // User Ignore Notification toggle menu command
+    var toggleTo = UIL_notification ? "Off" : "On";
+    GM_registerMenuCommand("Turn User Ignore Notification " + toggleTo, function()
     {
         GM_setValue("notification", !UIL_notification);
         window.location.reload();
-    }
-    // Register the menu command with an appropriate label
-    if (UIL_notification)
+    });
+
+    // Quote Killing toggle menu command
+    var toggleTo = UIL_killQuotes ? "Off" : "On";
+    GM_registerMenuCommand("Turn Ignored User Quote Killing " + toggleTo, function()
     {
-        GM_registerMenuCommand("Turn User Ignore Notification Off",
-                               UIL_toggleNotification);
-    }
-    else
-    {
-        GM_registerMenuCommand("Turn User Ignore Notification On",
-                               UIL_toggleNotification);
-    }
+        GM_setValue("killQuotes", !UIL_killQuotes);
+        window.location.reload();
+    });
 }
 )();
