@@ -7,7 +7,7 @@
 
 /* Changelog
  * ---------
- * 2006-03-09 Updated to work with latest version of Greasemonkey and removed
+ * 2006-03-10 Updated to work with latest version of Greasemonkey and removed
  *            all use of cookies in favour of GM's own storage mechanism.
  * 2005-06-12 Reduced MAX_COOKIE_SIZE to 4000, as setting cookies when close to
  *            the old 4096 limit seems to silently fail.
@@ -85,7 +85,7 @@ if (   window.location.href.indexOf("showforum=") != -1
     <p class="expand"><a href="javascript:togglecategory(99, 1);"><img src="style_images/1/exp_minus.gif" alt="Collapse" border="0"></a></p>\
     <p><img src="style_images/1/nav_m.gif" alt="&gt;" border="0" height="8" width="8">&nbsp;<a href="#fo_99">Ignored Topics</a></p>\
   </div>\
-  <table cellspacing="1">\
+  <table cellspacing="1" width="100%">\
   <tbody id="TILInsertTarget">\
   <tr> \
     <th align="center">&nbsp;</th>\
@@ -138,7 +138,7 @@ if (   window.location.href.indexOf("showforum=") != -1
     {
         return function(event)
         {
-            var control = event.target;
+            var control = event.target.parentNode;
             var topics = getTopicList();
 
             // Toggle this topic out of the list if it's already there
@@ -166,8 +166,6 @@ if (   window.location.href.indexOf("showforum=") != -1
                 else
                 {
                     // Move the row to the Ignored Topics section
-                    var tbody = row.parentNode;
-                    tbody.removeChild(row);
                     document.getElementById("TILInsertTarget").appendChild(row);
                     control.innerHTML = iconPlus;
                     control.title = "Click to stop ignoring this topic";
@@ -234,7 +232,7 @@ if (   window.location.href.indexOf("showforum=") != -1
     {
         pageType = FORUM_PAGE;
         xpathQuery =
-            "//table/tbody/tr/td[3]/div/a[starts-with(@title,'This topic was started')]";
+            "//table[@class='ipbtable']/tbody/tr/td[3]/div/span/a[starts-with(@title,'This topic was started')]";
     }
 
     // Get a list of topic links
@@ -278,7 +276,7 @@ if (   window.location.href.indexOf("showforum=") != -1
             control.alt = "Ignore";
             control.title = "Click to ignore this topic";
         }
-        control.addEventHandler("click", createClickHandler(topicId), true);
+        control.addEventListener("click", createIgnoreHandler(topicId), false);
 
         // Find the table cell which will contain the clickable icon
         var cell;
@@ -289,7 +287,7 @@ if (   window.location.href.indexOf("showforum=") != -1
         }
         else if (pageType == FORUM_PAGE)
         {
-            cell = node.parentNode.parentNode.previousSibling;
+            cell = node.parentNode.parentNode.parentNode.previousSibling;
         }
         // Skip over any empty text nodes
         while (cell.nodeType != 1)
@@ -308,8 +306,9 @@ if (   window.location.href.indexOf("showforum=") != -1
         // Insert the toggleable section on the first loop iteration
         if (!toggleableSectionInserted && !TIL_remove)
         {
-            insertToggleableSection(
-                cell.parentNode.parentNode.parentNode.parentNode);
+            var postTable =
+                    cell.parentNode.parentNode.parentNode.parentNode;
+            insertToggleableSection(postTable);
         }
 
         // If this topic is being ignored, take the appropriate action
@@ -335,7 +334,7 @@ if (   window.location.href.indexOf("showforum=") != -1
     // Promote any active topics to the head of the topic list and store it
     if (activeTopics.length > 0)
     {
-        storeTopicList(activeTopics.concat(topics));
+        GM_setValue("ignoredTopics", activeTopics.concat(topics).join(","));
     }
 }
 

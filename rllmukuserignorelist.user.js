@@ -7,7 +7,7 @@
 
 /* Changelog
  * ---------
- * 2006-03-08 Updated to work with latest version of Greasemonkey and to remove
+ * 2006-03-10 Updated to work with latest version of Greasemonkey and to remove
  *            posts containing quotes from ignored users.
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
  * -------------------------------------------------------------------------- */
@@ -89,7 +89,7 @@ function()
             var node = nodes.snapshotItem(i);
             if (isInArray(node.innerHTML, users))
             {
-                node.parentNode.parentNode.parentNode.style.display = "none";
+                node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
                 UIL_postsRemoved++;
             }
         }
@@ -113,7 +113,7 @@ function()
                 {
                     if (node.innerHTML.indexOf("QUOTE(" + users[j]) === 0)
                     {
-                        node.parentNode.parentNode.parentNode.style.display = "none";
+                        node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
                         UIL_postsRemoved++;
                         break;
                     }
@@ -123,7 +123,7 @@ function()
     }
 
     // Remove posts from post/edit/preview topic summary
-    if ((window.location.href.indexOf("act=Post") != -1
+    if ((window.location.href.indexOf("act=post") != -1
         || window.location.href.endsWith("/index.php?"))
         && UIL_ignoredUsers != undefined)
     {
@@ -157,6 +157,43 @@ function()
                 postNode.style.display = "none";
                 // Increment counter
                 UIL_postsRemoved++;
+            }
+        }
+
+        if (UIL_killQuotes)
+        {
+            // Get a list of quote headers
+            var nodes =
+                document.evaluate(
+                "//div[@class='quotetop']",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+            // Remove posts containing quotes from ignored usernames
+            for (var i = 0; i < nodes.snapshotLength; i++)
+            {
+                var node = nodes.snapshotItem(i);
+                for (var j = 0; j < users.length; j++)
+                {
+                    if (node.innerHTML.indexOf("QUOTE(" + users[j]) === 0)
+                    {
+                        // Remove name and date info
+                        var nameNode = node.parentNode.parentNode.parentNode;
+                        nameNode.style.display = "none";
+                        // Move to next TR and remove post info
+                        var postNode = nameNode.nextSibling;
+                        while (postNode.nodeName != "TR" && postNode != null)
+                        {
+                            postNode = postNode.nextSibling;
+                        }
+                        postNode.style.display = "none";
+                        // Increment counter
+                        UIL_postsRemoved++;
+                        break;
+                    }
+                }
             }
         }
     }
