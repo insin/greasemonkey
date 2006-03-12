@@ -7,6 +7,8 @@
 
 /* Changelog
  * ---------
+ * 2006-03-12 Changed method for getting topic's row to avoid dumping the entire
+ *            post table in the Ignored Topics section.
  * 2006-03-10 Updated to work with latest version of Greasemonkey and removed
  *            all use of cookies in favour of GM's own storage mechanism.
  * 2005-06-12 Reduced MAX_COOKIE_SIZE to 4000, as setting cookies when close to
@@ -157,7 +159,14 @@ if (   window.location.href.indexOf("showforum=") != -1
             {
                 // Add this topic's id to the front of the list
                 topics.splice(0, 0, topicId);
-                var row = control.parentNode.parentNode;
+
+                // Get the row containing this topic
+                var row = control.parentNode;
+                while (row.nodeName.toLowerCase() != "tr")
+                {
+                    row = row.parentNode;
+                }
+
                 if (TIL_remove)
                 {
                     // Remove the row completely
