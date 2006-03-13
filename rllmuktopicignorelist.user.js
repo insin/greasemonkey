@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name        Rllmuk Topic Ignore List
-// @namespace   http://insin.woaf.net/scripts/
-// @description Implements a topic ignore list, sending selected topics to an unobtrusive ignore list or removing them completely.
+// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
+// @description Implements a topic ignore list, sending selected topics to an unobtrusive Ignored Topics section at the foot of topic listing pages.
 // @include     http://www.rllmukforum.com/*
+// @include     http://rllmukforum.com/*
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2006-03-13 Removed setting which toggled usage of the Ignored Topics section
+ *            and did a general code tidy.
  * 2006-03-12 Changed method for getting topic's row to avoid dumping the entire
  *            post table in the Ignored Topics section.
  * 2006-03-10 Updated to work with latest version of Greasemonkey and removed
@@ -16,39 +19,47 @@
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
  * -------------------------------------------------------------------------- */
 
+// Don't attempt to apply topic ignoring unless we're on a topic list page
+if (   window.location.href.indexOf("showforum=") == -1
+    && window.location.href.indexOf("act=SF") == -1
+    && window.location.href.indexOf("searchid=") == -1)
+{
+    return;
+}
+
+/* Rllmuk Topic Ignore List
+----------------------------------------------------------------------------- */
 (
 function()
 {
-    // Check for required Greasemonkey functions
-    if (!GM_getValue || !GM_registerMenuCommand)
-    {
-        alert("'Rllmuk Topic Ignore List' is not compatible with the installed version of Greasemonkey");
-        return;
-    }
+    var IGNORED_TOPIC_SETTING = "ignoredTopics";
+    var IGNORED_TOPIC_SEPARATOR = ",";
+    var FORUM_PAGE = 0;
+    var SEARCH_PAGE = 1;
 
-    /* Configuration
-    ------------------------------------------------------------------------- */
-    // Determines if topics should be completely removed or added to a
-    // toggleable ignore list below the main topic list
-    var TIL_remove = GM_getValue("remove");
-    if (TIL_remove === undefined)
-    {
-        GM_setValue("remove", false);
-        TIL_remove = false;
-    }
+    var pageType;
+    var topicLinkXPathQuery;
+    var topicIdRegex = /showtopic=([0-9]+)/;
+    var crossIcon =
+        '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIyMjKqqqp%2B' +
+        'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQFIRmcXvAYFss0SmlQ3qqAgA7">';
+    var plusIcon =
+        '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIuLi6qqqp%2B' +
+        'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQlBGmgntpgpwSWHRVc3v1AgA7">';
 
-// Don't attempt to apply topic ignoring unless we're on a topic list page
-if (   window.location.href.indexOf("showforum=") != -1
-    || window.location.href.indexOf("act=SF") != -1
-    || window.location.href.indexOf("searchid=") != -1)
-{
-    /* Utility Functions
-    ------------------------------------------------------------------------- */
-    function positionInArray(searchTerm, array)
+    /**
+     * Determines the position of a given item in a given Array using == to test
+     * for equality.
+     *
+     * @param item the term to be searched for.
+     * @param array the array to be searched for the search term.
+     * @return the index of the search term in the array if found, -1 otherwise.
+     */
+    function positionInArray(item, array)
     {
         for(var i = 0; i < array.length; i++)
         {
-            if (array[i] == searchTerm)
+            if (array[i] == item)
             {
                 return i;
             }
@@ -56,25 +67,30 @@ if (   window.location.href.indexOf("showforum=") != -1
         return -1;
     };
 
-    function getTopicList()
+    /**
+     * Retrieves ignored topic ids.
+     *
+     * @return an Array of ids of topics which are currently being ignored.
+     */
+    function getIgnoredTopicIds()
     {
-        var store = GM_getValue("ignoredTopics")
-        var list = store ? store.split(",") : [];
-        return list;
+        var settings = GM_getValue(IGNORED_TOPIC_SETTING)
+        return (settings ? settings.split(IGNORED_TOPIC_SEPARATOR) : []);
     };
 
     /**
-     * Inserts a toggleable area into the current page to store ignored topics.
-     * Depends on the <code>pageType</code> variable having been set correctly.
+     * Inserts an Ignored Topics section into the current page to store table
+     * rows which contain ignored topic details.
      *
-     * @param postTable A DOM object representing the table which holds topic
-     *                  listings.
+     * @param postTable the DOM Node for the table which holds topic listings,
+     *                  to be used as a reference point for insertion of the new
+     *                  section.
      */
-    function insertToggleableSection(postTable)
+    function insertIgnoredTopicsSection(postTable, pageType)
     {
         // The following HTML is a direct lift from the toggleable topic folder
         // sections of the forum - it uses the forum's own Javascript functions
-        // to toggle display of ignored topics
+        // to toggle its display.
         var toggleableSectionHTML =
 '<div class="borderwrap" style="margin-bottom: 10px;" id="fc_99">\
   <div class="maintitlecollapse">\
@@ -133,139 +149,99 @@ if (   window.location.href.indexOf("showforum=") != -1
         area = document.createElement("div");
         area.innerHTML = toggleableSectionHTML;
         postTable.parentNode.insertBefore(area, postTable);
-        toggleableSectionInserted = true;
     };
 
+    /**
+     * Creates an event handling Function for ignoring a topic.
+     *
+     * @param topicId the id of the topic to be ignored.
+     * @return a Function which, when executed, will toggle the ignored state of
+     *         the topic with the given id.
+     */
     function createIgnoreHandler(topicId)
     {
         return function(event)
         {
-            var control = event.target.parentNode;
-            var topics = getTopicList();
-
             // Toggle this topic out of the list if it's already there
-            var notFound = true;
-            for (var j = 0; j < topics.length; j++)
+            var newlyIgnoredTopic = true;
+            var ignoredTopicIds = getIgnoredTopicIds();
+            var topicIdIndex = positionInArray(topicId, ignoredTopicIds);
+            if (topicIdIndex > -1)
             {
-                if (topics[j] == topicId)
-                {
-                    topics.splice(j, 1);
-                    notFound = false;
-                }
+                ignoredTopicIds.splice(topicIdIndex, 1);
+                newlyIgnoredTopic = false;
             }
 
-            // Otherwise, add this topic to the list and take appropriate action
-            if (notFound)
+            var ignoreControl = event.target.parentNode;
+            if (newlyIgnoredTopic)
             {
-                // Add this topic's id to the front of the list
-                topics.splice(0, 0, topicId);
+                // Add this topic's id to the front of the ignore list
+                ignoredTopicIds.splice(0, 0, topicId);
 
-                // Get the row containing this topic
-                var row = control.parentNode;
-                while (row.nodeName.toLowerCase() != "tr")
+                // Move the table row Node which contains this topic's details
+                // to the Ignored Topics section.
+                var row = ignoreControl;
+                do
                 {
                     row = row.parentNode;
-                }
+                } while (row.nodeName.toLowerCase() != "tr")
+                document.getElementById("TILInsertTarget").appendChild(row);
 
-                if (TIL_remove)
-                {
-                    // Remove the row completely
-                    row.parentNode.removeChild(row);
-                }
-                else
-                {
-                    // Move the row to the Ignored Topics section
-                    document.getElementById("TILInsertTarget").appendChild(row);
-                    control.innerHTML = iconPlus;
-                    control.title = "Click to stop ignoring this topic";
-                }
+                // Update the topic ignoring control appropriately
+                ignoreControl.innerHTML = plusIcon;
+                ignoreControl.title = "Click to stop ignoring this topic";
             }
             else
             {
                 // Show that this topic won't be ignored on next page load
-                control.innerHTML = iconCross;
-                control.title = "Click to re-ignore this topic";
+                ignoreControl.innerHTML = crossIcon;
+                ignoreControl.title = "Click to re-ignore this topic";
             }
 
-            // Update the stored topic list appropriately
-            if (topics.length > 0)
+            // Store the updated ignored topic list
+            if (ignoredTopicIds.length > 0)
             {
-                GM_setValue("ignoredTopics", topics.join(","));
+                GM_setValue(IGNORED_TOPIC_SETTING, ignoredTopicIds.join(","));
             }
             else
             {
-                GM_setValue("ignoredTopics", undefined);
+                GM_setValue(IGNORED_TOPIC_SETTING, undefined);
             }
         };
     };
 
-    /* Initialisation
-    ------------------------------------------------------------------------- */
-    var topics = getTopicList();
-
-    /** Page type indicator. */
-    var pageType;
-    var FORUM_PAGE = 0;
-    var SEARCH_PAGE = 1;
-
-    /** Toggleable section insertion status. */
-    var toggleableSectionInserted = false;
-
-    // Images
-    var iconCross =
-        '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIyMjKqqqp%2B' +
-        'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQFIRmcXvAYFss0SmlQ3qqAgA7">';
-    var iconPlus =
-        '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIuLi6qqqp%2B' +
-        'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQlBGmgntpgpwSWHRVc3v1AgA7">';
-
-    /** XPATH query for this page's topic links. */
-    var xpathQuery;
-
-    /** Regular expression for extracting topic ids. */
-    var topicIdRegex = /showtopic=([0-9]+)/;
-
-    /** Active topics list. */
-    var activeTopics = [];
-
-    /* Topic Management
+    /* Page Load Topic Management and Ignore Control Setup
     ------------------------------------------------------------------------- */
     // Set the xpath query and page type indicator for this page
-    if (window.location.href.indexOf("searchid=") != -1)
+    if (window.location.href.indexOf("searchid=") > -1)
     {
         pageType = SEARCH_PAGE;
-        xpathQuery =
+        topicLinkXPathQuery =
             "//div[@class='borderwrap']/table/tbody/tr/td[3]/table/tbody/tr/td[@width='100%']/a[1]";
     }
     else
     {
         pageType = FORUM_PAGE;
-        xpathQuery =
+        topicLinkXPathQuery =
             "//table[@class='ipbtable']/tbody/tr/td[3]/div/span/a[starts-with(@title,'This topic was started')]";
     }
 
-    // Get a list of topic links
-    var nodes = document.evaluate(
-                    xpathQuery,
-                    document,
-                    null,
-                    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                    null);
-
-    // Work on the list of topic links
-    for (var i = 0; i < nodes.snapshotLength; i++)
+    var removedTopics = [];
+    var ignoredTopicIds = getIgnoredTopicIds();
+    var topicLinkNodes =
+        document.evaluate(topicLinkXPathQuery, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var i = 0; i < topicLinkNodes.snapshotLength; i++)
     {
-        var node = nodes.snapshotItem(i);
-        var topicId = topicIdRegex.exec(node.href)[1];
+        var topicLinkNode = topicLinkNodes.snapshotItem(i);
+        var topicId = topicIdRegex.exec(topicLinkNode.href)[1];
+        var ignoredTopicIndex = positionInArray(topicId, ignoredTopicIds);
+        var beingIgnored = (ignoredTopicIndex > -1);
 
-        // Check if this topic number in our list
-        var arrayPos = positionInArray(topicId, topics);
-        var beingIgnored = (arrayPos != -1);
-
-        // Move this topic's id to the head of the active list if found
         if (beingIgnored)
         {
-            activeTopics.splice(0, 0, topics.splice(arrayPos, 1));
+            // Remove this topic's id from the current ignore list and place it
+            // at the front of the removed topics list.
+            removedTopics.splice(0, 0, ignoredTopicIds.splice(ignoredTopicIndex, 1));
         }
 
         // Create control for topic management
@@ -275,28 +251,27 @@ if (   window.location.href.indexOf("showforum=") != -1
         control.style.margin = "6px";
         if (beingIgnored)
         {
-            control.innerHTML = iconPlus;
+            control.innerHTML = plusIcon;
             control.alt = "Unignore";
             control.title = "Click to stop ignoring this topic";
         }
         else
         {
-            control.innerHTML = iconCross;
+            control.innerHTML = crossIcon;
             control.alt = "Ignore";
             control.title = "Click to ignore this topic";
         }
         control.addEventListener("click", createIgnoreHandler(topicId), false);
 
-        // Find the table cell which will contain the clickable icon
+        // Find the table cell which will contain the ignore control
         var cell;
-        if (pageType == SEARCH_PAGE)
+        if (pageType === SEARCH_PAGE)
         {
-            cell =
-                node.parentNode.parentNode.parentNode.parentNode.parentNode.previousSibling;
+            cell = topicLinkNode.parentNode.parentNode.parentNode.parentNode.parentNode.previousSibling;
         }
-        else if (pageType == FORUM_PAGE)
+        else if (pageType === FORUM_PAGE)
         {
-            cell = node.parentNode.parentNode.parentNode.previousSibling;
+            cell = topicLinkNode.parentNode.parentNode.parentNode.previousSibling;
         }
         // Skip over any empty text nodes
         while (cell.nodeType != 1)
@@ -312,49 +287,27 @@ if (   window.location.href.indexOf("showforum=") != -1
         // Insert the control
         cell.appendChild(control);
 
-        // Insert the toggleable section on the first loop iteration
-        if (!toggleableSectionInserted && !TIL_remove)
+        // Insert the Ignored Topics section on the first loop iteration
+        if (i === 0)
         {
-            var postTable =
-                    cell.parentNode.parentNode.parentNode.parentNode;
-            insertToggleableSection(postTable);
+            var postTable = cell.parentNode.parentNode.parentNode.parentNode;
+            insertIgnoredTopicsSection(postTable, pageType);
         }
 
-        // If this topic is being ignored, take the appropriate action
+        // If this topic is being ignored, move its row to the Ignored Topics
+        // section.
         if (beingIgnored)
         {
-            // Deal with this topic's row, as configured
-            var row = cell.parentNode;
-            if (TIL_remove)
-            {
-                // Remove the row completely
-                row.parentNode.removeChild(row);
-            }
-            else
-            {
-                // Move the row to the Ignored Topics section
-                var tbody = row.parentNode;
-                tbody.removeChild(row);
-                document.getElementById("TILInsertTarget").appendChild(row);
-            }
+            document.getElementById("TILInsertTarget").appendChild(cell.parentNode);
         }
     }
 
-    // Promote any active topics to the head of the topic list and store it
-    if (activeTopics.length > 0)
+    // Place any active ignored  topics on the front of the ignored topic list
+    // and store it.
+    if (removedTopics.length > 0)
     {
-        GM_setValue("ignoredTopics", activeTopics.concat(topics).join(","));
+        GM_setValue(IGNORED_TOPIC_SETTING,
+                    removedTopics.concat(ignoredTopicIds).join(IGNORED_TOPIC_SEPARATOR));
     }
-}
-
-    /* Menu Commands
-    ------------------------------------------------------------------------- */
-    // Topic Removal Toggling menu command
-    var toggleTo = TIL_remove ? "Off" : "On";
-    GM_registerMenuCommand("Turn Topic Removal " + toggleTo, function()
-    {
-        GM_setValue("remove", !TIL_remove);
-        window.location.reload();
-    });
 }
 )();
