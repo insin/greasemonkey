@@ -15,13 +15,6 @@
 (
 function()
 {
-    // Check for required Greasemonkey functions
-    if (!GM_getValue || !GM_registerMenuCommand)
-    {
-        alert("'Rllmuk User Ignore List' is not compatible with the installed version of Greasemonkey");
-        return;
-    }
-
     /* Utility Methods
     ------------------------------------------------------------------------- */
     function isInArray(searchTerm, array)
