@@ -8,6 +8,8 @@
 
 /* Changelog
  * ---------
+ * 2006-04-07 Added ignoring of specified folders on search pages and a menu
+ *            item to edit the ignored folder list.
  * 2006-03-13 Removed setting which toggled usage of the Ignored Topics section
  *            and did a general code tidy.
  * 2006-03-12 Changed method for getting topic's row to avoid dumping the entire
@@ -33,12 +35,14 @@ if (   window.location.href.indexOf("showforum=") == -1
 function()
 {
     var IGNORED_TOPIC_SETTING = "ignoredTopics";
-    var IGNORED_TOPIC_SEPARATOR = ",";
+    var IGNORED_FOLDER_SETTING = "ignoredFolders";
+    var IGNORED_ITEM_SEPARATOR = ",";
     var FORUM_PAGE = 0;
     var SEARCH_PAGE = 1;
 
-    var pageType;
-    var topicLinkXPathQuery;
+    var pageType = null;
+    var topicLinkXPathQuery = null;
+    var folderLinkXPathQuery = null;
     var topicIdRegex = /showtopic=([0-9]+)/;
     var crossIcon =
         '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIyMjKqqqp%2B' +
@@ -74,8 +78,19 @@ function()
      */
     function getIgnoredTopicIds()
     {
-        var settings = GM_getValue(IGNORED_TOPIC_SETTING)
-        return (settings ? settings.split(IGNORED_TOPIC_SEPARATOR) : []);
+        var settings = GM_getValue(IGNORED_TOPIC_SETTING);
+        return (settings ? settings.split(IGNORED_ITEM_SEPARATOR) : []);
+    };
+
+    /**
+     * Retrieves folder names.
+     *
+     * @return an Array of names of folders which are currently being ignored.
+     */
+    function getIgnoredFolderNames()
+    {
+        var settings = GM_getValue(IGNORED_FOLDER_SETTING);
+        return (settings ? settings.split(IGNORED_ITEM_SEPARATOR) : []);
     };
 
     /**
@@ -218,6 +233,8 @@ function()
         pageType = SEARCH_PAGE;
         topicLinkXPathQuery =
             "//div[@class='borderwrap']/table/tbody/tr/td[3]/table/tbody/tr/td[@width='100%']/a[1]";
+        folderLinkXPathQuery =
+            "//div[@class='borderwrap']/table/tbody/tr/td[4]/span/a";
     }
     else
     {
@@ -307,7 +324,45 @@ function()
     if (removedTopics.length > 0)
     {
         GM_setValue(IGNORED_TOPIC_SETTING,
-                    removedTopics.concat(ignoredTopicIds).join(IGNORED_TOPIC_SEPARATOR));
+                    removedTopics.concat(ignoredTopicIds).join(IGNORED_ITEM_SEPARATOR));
     }
+
+    // Remove topics from ignored folders if we're on a search page
+    if (pageType == SEARCH_PAGE)
+    {
+        var ignoredFolderNames = getIgnoredFolderNames();
+        if (ignoredFolderNames.length > 0)
+        {
+            var folderLinkNodes =
+                document.evaluate(folderLinkXPathQuery, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+
+            for (var i = 0; i < folderLinkNodes.snapshotLength; i++)
+            {
+                var folderLinkNode = folderLinkNodes.snapshotItem(i);
+                if (positionInArray(folderLinkNode.innerHTML, ignoredFolderNames) != -1)
+                {
+                    var row = folderLinkNode.parentNode.parentNode.parentNode;
+                    document.getElementById("TILInsertTarget").appendChild(row);
+                }
+            }
+        }
+    }
+
+    /* Menu Commands
+    ------------------------------------------------------------------------- */
+    // Edit Ignored Folder List menu command
+    GM_registerMenuCommand("Edit Ignored Folder List", function()
+    {
+        var ignoredFolders = GM_getValue(IGNORED_FOLDER_SETTING) || "";
+        var newList =
+            prompt("Edit ignored folder names, separating them with '" + IGNORED_ITEM_SEPARATOR + "'",
+                   ignoredFolders);
+
+        // If the edit was ok'ed, store the list
+        if (newList != undefined)
+        {
+            GM_setValue(IGNORED_FOLDER_SETTING, newList);
+        }
+    });
 }
 )();
