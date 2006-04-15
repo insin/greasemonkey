@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Rllmuk User Ignore List
-// @namespace   http://insin.woaf.net/scripts/
+// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description Implements a user ignore list which removes all traces of the users on the list. The ignore list can be synchronised with your Manage Ignored Users settings when viewing that page.
 // @include     http://www.rllmukforum.com/*
 // ==/UserScript==

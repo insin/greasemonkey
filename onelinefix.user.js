@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        One Line Fix
-// @namespace   http://insin.woaf.net/scripts/
+// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description Shows contents of alt attribute on review images when moused over.
 // @include     http://oneline.excellentcontent.com/*
 // ==/UserScript==

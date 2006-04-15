@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Rllmuk Always Use Quick Edit
-// @namespace   http://insin.woaf.net/scripts/
+// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description Modifies post Edit buttons to always use Quick Edit.
 // @include     http://www.rllmukforum.com/*
 // ==/UserScript==

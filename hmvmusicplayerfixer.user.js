@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           HMV Music Player Fixer
-// @namespace      http://insin.woaf.net
+// @namespace      http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description    Fixes the function used to control the music player
 // @include        http://hmv.co.uk/*
 // @include        http://www.hmv.co.uk/*

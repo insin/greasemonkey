@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Rllmuk Tidy
-// @namespace   http://insin.woaf.net/scripts/
+// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description Applies CSS fixes to neaten layout & attempts to tidy up posts
 // @include     http://www.rllmukforum.com/*
 // ==/UserScript==

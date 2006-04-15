@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Eurogamer Tidy
-// @namespace     http://insin.woaf.net
+// @namespace     http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description   Tidies up the redesigned eurogamer.net
 // @include       http://eurogamer.net/*
 // @include       http://www.eurogamer.net/*
