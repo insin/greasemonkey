@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name        One Line Fix
 // @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
-// @description Shows contents of alt attribute on review images when moused over.
+// @description Shows full contents of alt attribute on review images when moused over
 // @include     http://oneline.excellentcontent.com/*
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2006-04-15 Fixed for Greasemonkey 0.6.4
  * 2005-06-20 Initial version.
  * -------------------------------------------------------------------------- */
 
@@ -24,6 +25,11 @@ function()
 
     var img = result.singleNodeValue;
 
+    if (img == null)
+    {
+        return;
+    }
+
     // Set up extra content area
     var div = document.createElement("DIV");
     div.appendChild(document.createTextNode(img.alt));
@@ -40,7 +46,7 @@ function()
 
     // Set up image
     img.style.cursor = "help";
-    img.onmouseover = function(e)
+    img.addEventListener("mouseover", function(e)
     {
         var img = e.target;
         var div = document.getElementById("extraContent");
@@ -51,14 +57,14 @@ function()
         div.style.display = "block";
         // Centre vertically
         div.style.top = (img.y + (img.height - div.clientHeight) / 2) + "px";
-    }
-    img.onmouseout = function(e)
+    }, false);
+    img.addEventListener("mouseout", function(e)
     {
         // Only hide once the mouse has left the image area
         if (e.relatedTarget.tagName != "DIV")
         {
             document.getElementById("extraContent").style.display = "none";
         }
-    }
+    }, false);
 }
 )();
