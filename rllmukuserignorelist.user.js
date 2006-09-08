@@ -7,6 +7,8 @@
 
 /* Changelog
  * ---------
+ * 2006-08-09 Fixed bug where the number of posts reported as being removed was
+ *            incorrect when an ignored user was quoted repeatedly.
  * 2006-03-10 Updated to work with latest version of Greasemonkey and to remove
  *            posts containing quotes from ignored users.
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
@@ -106,8 +108,12 @@ function()
                 {
                     if (node.innerHTML.indexOf("QUOTE(" + users[j]) === 0)
                     {
-                        node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
-                        UIL_postsRemoved++;
+                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
+                        if (postNode.style.display != "none")
+                        {
+                            postNode.style.display = "none";
+                            UIL_postsRemoved++;
+                        }
                         break;
                     }
                 }
