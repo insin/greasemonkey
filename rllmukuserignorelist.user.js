@@ -7,8 +7,12 @@
 
 /* Changelog
  * ---------
- * 2006-08-09 Fixed bug where the number of posts reported as being removed was
+ * 2006-09-09 Fixed bug where the number of posts reported as being removed was
  *            incorrect when an ignored user was quoted repeatedly.
+ *            Replaced use of isInArray function with use of JS 1.6's new
+ *            indexOf Array instance method.
+ *            URL substring checks are now performed on a lowercase version of
+ *            the URL - this fixes removal of posts on the Reply page.
  * 2006-03-10 Updated to work with latest version of Greasemonkey and to remove
  *            posts containing quotes from ignored users.
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
@@ -19,30 +23,13 @@ function()
 {
     /* Utility Methods
     ------------------------------------------------------------------------- */
-    function isInArray(searchTerm, array)
-    {
-        if (array.length == 1)
-        {
-            return (array[0] == searchTerm);
-        }
-
-        for(var i = 0; i < array.length; i++)
-        {
-            if (array[i] == searchTerm)
-            {
-                return true;
-            }
-        }
-        return false;
-    };
-
     String.prototype.endsWith = function(s)
     {
         lastIndex = this.lastIndexOf(s);
         return (lastIndex != -1 && lastIndex == (this.length - s.length));
     };
 
-    /* Configuration & Initialisation
+    /* Configuration
      ------------------------------------------------------------------------ */
     var UIL_notification = GM_getValue("notification");
     if (UIL_notification === undefined)
@@ -62,7 +49,7 @@ function()
     /* Post Removal And Notification
     ------------------------------------------------------------------------- */
     // Remove posts from topic pages
-    if ((window.location.href.indexOf("showtopic=") != -1
+    if ((window.location.href.toLowerCase().indexOf("showtopic=") != -1
         || window.location.href.indexOf("act=ST") != -1)
         && UIL_ignoredUsers != undefined)
     {
@@ -82,7 +69,7 @@ function()
         for (var i = 0; i < nodes.snapshotLength; i++)
         {
             var node = nodes.snapshotItem(i);
-            if (isInArray(node.innerHTML, users))
+            if (users.indexOf(node.innerHTML) != -1)
             {
                 node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
                 UIL_postsRemoved++;
@@ -122,7 +109,7 @@ function()
     }
 
     // Remove posts from post/edit/preview topic summary
-    if ((window.location.href.indexOf("act=post") != -1
+    if ((window.location.href.toLowerCase().indexOf("act=post") != -1
         || window.location.href.endsWith("/index.php?"))
         && UIL_ignoredUsers != undefined)
     {
@@ -142,7 +129,7 @@ function()
         for (var i = 0; i < nodes.snapshotLength; i++)
         {
             var node = nodes.snapshotItem(i);
-            if (isInArray(node.innerHTML, users))
+            if (users.indexOf(node.innerHTML) != -1)
             {
                 // Remove name and date info
                 var nameNode = node.parentNode.parentNode;
