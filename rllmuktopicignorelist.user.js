@@ -4,6 +4,8 @@
 // @description Implements a topic ignore list, sending selected topics to an unobtrusive Ignored Topics section at the foot of topic listing pages. For users who primarily browse the forum using View New Posts, topics may also be ignored on search result pages based on the folder they belong to.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
+// @include     http://www.rpsoft.co.uk/*
+// @include     http://rpsoft.co.uk/*
 // ==/UserScript==
 
 /* Changelog

@@ -3,6 +3,9 @@
 // @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description Implements a user ignore list which removes all traces of the users on the list and optionally removes topics created by ignored users and posts which quote ignored users. The ignore list can be synchronised with your Manage Ignored Users settings when viewing that page.
 // @include     http://www.rllmukforum.com/*
+// @include     http://rllmukforum.com/*
+// @include     http://www.rpsoft.co.uk/*
+// @include     http://rpsoft.co.uk/*
 // ==/UserScript==
 
 /* Changelog
