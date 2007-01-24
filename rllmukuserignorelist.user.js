@@ -960,6 +960,12 @@ UIL.UI =
         var topicId = ignoredTopic.value;
         if (userName.length > 0 && topicId.length > 0)
         {
+            if (UIL.Config.getGloballyIgnoredUsers().indexOf(userName) != -1)
+            {
+                alert("You're already ignoring " + userName + " globally");
+                return;
+            }
+
             var added = UIL.Config.addIgnoredUserForTopic(topicId, userName);
             if (added)
             {
