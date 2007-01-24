@@ -31,6 +31,15 @@ String.prototype.endsWith = function(s)
     return (lastIndex != -1 && lastIndex == (this.length - s.length));
 };
 
+Function.prototype.bind = function(object)
+{
+    var __method = this;
+    return function()
+    {
+        __method.apply(object, arguments);
+    }
+};
+
 /*
 Copyright (c) 2005 JSON.org
 
@@ -51,7 +60,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 var JSON = {
     org: 'http://www.JSON.org',
     copyright: '(c)2005 JSON.org',
@@ -371,6 +379,274 @@ outer:          while (next()) {
 
 var UIL =
 {
+    init: function()
+    {
+        var pageType = this.determineCurrentPageType();
+        this.processPage(pageType);
+        this.registerMenuCommands(pageType);
+    },
+
+    determineCurrentPageType: function()
+    {
+        var pageType = null;
+        if (window.location.href.toLowerCase().indexOf("showtopic=") != -1 ||
+            window.location.href.indexOf("act=ST") != -1)
+        {
+            pageType = "topic";
+        }
+        else if (window.location.href.toLowerCase().indexOf("act=post") != -1 ||
+                 window.location.href.endsWith("/index.php?"))
+        {
+            pageType = "topicListing";
+        }
+        else if (window.location.href.indexOf("showforum=") != -1 ||
+                 window.location.href.indexOf("act=SF") != -1 ||
+                 window.location.href.indexOf("searchid=") != -1)
+        {
+            pageType = "postEditPreview";
+        }
+        else if (window.location.href.endsWith("/index.php?act=UserCP&CODE=ignore"))
+        {
+            pageType = "ignoredUsers";
+        }
+        return pageType;
+    },
+
+    processPage: function(pageType)
+    {
+        if (pageType !== null)
+        {
+            var pageProcessor = pageType + "PageProcessor";
+            if (typeof(this[pageProcessor]) == "function")
+            {
+                var removedItemCount = this[pageType + "PageProcessor"]();
+                if (UIL.Config.getNotification() === true && removedItemCount > 0)
+                {
+                    this.notifyOfItemRemoval(removedItemCount);
+                }
+            }
+        }
+    },
+
+    topicPageProcessor: function()
+    {
+        var itemsRemoved = 0;
+        var topicId = document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        var ignoredUsers =
+            UIL.Config.getGloballyIgnoredUsers()
+                .concat(UIL.Config.getIgnoredUsersForTopic(topicId));
+
+        // Get a list of username links
+        var nodes =
+            document.evaluate(
+                "//span[@class='normalname']/a",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        // Remove posts made by ignored usernames
+        for (var i = 0; i < nodes.snapshotLength; i++)
+        {
+            var node = nodes.snapshotItem(i);
+            if (ignoredUsers.indexOf(node.innerHTML) != -1)
+            {
+                node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
+                itemsRemoved++;
+            }
+        }
+
+        if (UIL.Config.getKillQuotes())
+        {
+            // Get a list of quote headers
+            var nodes =
+                document.evaluate(
+                    "//div[@class='quotetop']",
+                    document,
+                    null,
+                    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                    null);
+
+            // Remove posts containing quotes from ignored usernames
+            for (var i = 0; i < nodes.snapshotLength; i++)
+            {
+                var node = nodes.snapshotItem(i);
+                for (var j = 0; j < ignoredUsers.length; j++)
+                {
+                    if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
+                    {
+                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
+                        if (postNode.style.display != "none")
+                        {
+                            postNode.style.display = "none";
+                            itemsRemoved++;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        return itemsRemoved;
+    },
+
+    postEditPreviewPageProcessor: function()
+    {
+        var itemsRemoved = 0;
+        var topicId = document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        var ignoredUsers =
+            UIL.Config.getGloballyIgnoredUsers()
+                .concat(UIL.Config.getIgnoredUsersForTopic(topicId));
+
+        // Get a list of username links
+        var nodes =
+            document.evaluate(
+                "//div[@class='borderwrap']/table/tbody/tr/td[1]/b",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        // Remove posts made by ignored usernames
+        for (var i = 0; i < nodes.snapshotLength; i++)
+        {
+            var node = nodes.snapshotItem(i);
+            if (ignoredUsers.indexOf(node.innerHTML) != -1)
+            {
+                // Remove name and date info
+                var nameNode = node.parentNode.parentNode;
+                nameNode.style.display = "none";
+                // Move to next TR and remove post info
+                var postNode = nameNode.nextSibling;
+                while (postNode.nodeName != "TR" && postNode != null)
+                {
+                    postNode = postNode.nextSibling;
+                }
+                postNode.style.display = "none";
+                itemsRemoved++;
+            }
+        }
+
+        if (UIL.Config.getKillQuotes())
+        {
+            // Get a list of quote headers
+            var nodes =
+                document.evaluate(
+                    "//div[@class='quotetop']",
+                    document,
+                    null,
+                    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                    null);
+
+            // Remove posts containing quotes from ignored usernames
+            for (var i = 0; i < nodes.snapshotLength; i++)
+            {
+                var node = nodes.snapshotItem(i);
+                for (var j = 0; j < ignoredUsers.length; j++)
+                {
+                    if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
+                    {
+                        // Remove name and date info
+                        var nameNode = node.parentNode.parentNode.parentNode;
+                        nameNode.style.display = "none";
+                        // Move to next TR and remove post info
+                        var postNode = nameNode.nextSibling;
+                        while (postNode.nodeName != "TR" && postNode != null)
+                        {
+                            postNode = postNode.nextSibling;
+                        }
+                        postNode.style.display = "none";
+                        itemsRemoved++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return itemsRemoved;
+    },
+
+    topicListingPageProcessor: function()
+    {
+        if (!UIL.Config.getKillTopics())
+        {
+            return;
+        }
+
+        var itemsRemoved = 0;
+        var ignoredUsers = UIL.Config.getGloballyIgnoredUsers();
+
+        if (window.location.href.indexOf("searchid=") > -1)
+        {
+            var topicStarterXPathQuery =
+                "//div[@class='borderwrap']/table/tbody/tr/td[5]/a[1]";
+        }
+        else
+        {
+            var topicStarterXPathQuery =
+                "//table[@class='ipbtable']/tbody/tr/td[5]/a[1]";
+        }
+
+        var topicStarterLinkNodes =
+            document.evaluate(
+                topicStarterXPathQuery,
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        for (var i = 0; i < topicStarterLinkNodes.snapshotLength; i++)
+        {
+            var topicStarterLinkNode = topicStarterLinkNodes.snapshotItem(i);
+            if (ignoredUsers.indexOf(topicStarterLinkNode.innerHTML) != -1)
+            {
+                var row = topicStarterLinkNode.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+                itemsRemoved++;
+            }
+        }
+
+        return itemsRemoved;
+    },
+
+    notifyOfItemRemoval: function(removedItemCount)
+    {
+        // Show the notification
+        var s = document.createElement("DIV");
+        s.id = "UIL-notification";
+        s.style.position = "fixed";
+        s.style.top = "0px";
+        s.style.right = "0px";
+        s.style.MozBorderRadiusBottomleft = "1em";
+        s.style.backgroundColor = "red";
+        s.style.color = "white";
+        s.style.padding = "3px 6px 5px 8px";
+        s.style.fontWeight = "bold";
+        var r = removedItemCount + " item";
+        if (removedItemCount > 1)
+        {
+            r += "s";
+        }
+        r += " removed";
+        s.appendChild(document.createTextNode(r));
+        document.body.appendChild(s);
+
+        // Remove the notification later
+        window.setTimeout(function()
+        {
+            var el = document.getElementById("UIL-notification");
+            el.parentNode.removeChild(el);
+        }, 3000);
+    },
+
+    registerMenuCommands: function(pageType)
+    {
+        if (pageType == "ignoredUsers")
+        {
+            GM_registerMenuCommand("Import Ignored User List",
+                                   UIL.Config.importGloballyIgnoredUserList.bind(UIL.Config));
+        }
+    }
 };
 
 UIL.Config =
@@ -415,6 +691,26 @@ UIL.Config =
         var ignoredUsers = this.getGloballyIgnoredUsers();
         ignoredUsers.splice(ignoredUsers.indexOf(userName), 1);
         this.setGloballyIgnoredUsers(ignoredUsers);
+    },
+
+    importGloballyIgnoredUserList: function()
+    {
+        // Get a list of username links
+        var nodes =
+            document.evaluate(
+                "//div[@class='borderwrapm']/table/tbody/tr/td/b/a",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        var ignoredUsers = [];
+        for (var i = 0; i < nodes.snapshotLength; i++)
+        {
+            ignoredUsers.push(nodes.snapshotItem(i).innerHTML);
+        }
+
+        this.setGloballyIgnoredUsers(newList);
     },
 
     getPerTopicIgnoredUsers: function()
@@ -478,222 +774,51 @@ UIL.Config =
             delete(topics[topicId]);
         }
         this.setPerTopicIgnoredUsers(topics);
+    },
+
+    getNotification: function()
+    {
+        return this._getBooleanConfig("notification", true);
+    },
+
+    setNotification: function(notification)
+    {
+        GM_setValue("notification", notification);
+    },
+
+    getKillQuotes: function()
+    {
+        return this._getBooleanConfig("killQuotes", true);
+    },
+
+    setKillQuotes: function(killQuotes)
+    {
+        GM_setValue("killQuotes", killQuotes);
+    },
+
+    getKillTopics: function()
+    {
+        return this._getBooleanConfig("killTopics", false);
+    },
+
+    setKillTopics: function(killTopics)
+    {
+        GM_setValue("killTopics", killTopics);
+    },
+
+    _getBooleanConfig: function(configName, defaultValue)
+    {
+        var config = GM_getValue(configName);
+        if (config === undefined)
+        {
+            GM_setValue(configName, defaultValue);
+            config = defaultValue;
+        }
+        return config;
     }
 };
 
-/* Configuration
- ------------------------------------------------------------------------ */
-var UIL_notification = GM_getValue("notification");
-if (UIL_notification === undefined)
-{
-    GM_setValue("notification", true);
-    UIL_notification = true;
-}
-var UIL_killQuotes = GM_getValue("killQuotes");
-if (UIL_killQuotes === undefined)
-{
-    GM_setValue("killQuotes", true);
-    UIL_killQuotes = true;
-}
-var UIL_killTopics = GM_getValue("killTopics");
-if (UIL_killTopics === undefined)
-{
-    GM_setValue("killTopics", false);
-    UIL_killTopics = false;
-}
-
-var UIL_postsRemoved = 0;
-var ignoredUsers = UIL.Config.getGloballyIgnoredUsers();
-
-/* Post Removal And Notification
-------------------------------------------------------------------------- */
-// Remove posts from topic pages
-if (window.location.href.toLowerCase().indexOf("showtopic=") != -1 ||
-    window.location.href.indexOf("act=ST") != -1)
-{
-    // Get a list of username links
-    var nodes =
-        document.evaluate(
-        "//span[@class='normalname']/a",
-        document,
-        null,
-        XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-        null);
-
-    // Remove posts made by ignored usernames
-    for (var i = 0; i < nodes.snapshotLength; i++)
-    {
-        var node = nodes.snapshotItem(i);
-        if (ignoredUsers.indexOf(node.innerHTML) != -1)
-        {
-            node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
-            UIL_postsRemoved++;
-        }
-    }
-
-    if (UIL_killQuotes)
-    {
-        // Get a list of quote headers
-        var nodes =
-            document.evaluate(
-            "//div[@class='quotetop']",
-            document,
-            null,
-            XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-            null);
-
-        // Remove posts containing quotes from ignored usernames
-        for (var i = 0; i < nodes.snapshotLength; i++)
-        {
-            var node = nodes.snapshotItem(i);
-            for (var j = 0; j < ignoredUsers.length; j++)
-            {
-                if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
-                {
-                    var postNode = node.parentNode.parentNode.parentNode.parentNode;
-                    if (postNode.style.display != "none")
-                    {
-                        postNode.style.display = "none";
-                        UIL_postsRemoved++;
-                    }
-                    break;
-                }
-            }
-        }
-    }
-}
-
-// Remove posts from post/edit/preview topic summary
-if (window.location.href.toLowerCase().indexOf("act=post") != -1 ||
-    window.location.href.endsWith("/index.php?"))
-{
-    // Get a list of username links
-    var nodes =
-        document.evaluate(
-        "//div[@class='borderwrap']/table/tbody/tr/td[1]/b",
-        document,
-        null,
-        XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-        null);
-
-    // Remove posts made by ignored usernames
-    for (var i = 0; i < nodes.snapshotLength; i++)
-    {
-        var node = nodes.snapshotItem(i);
-        if (ignoredUsers.indexOf(node.innerHTML) != -1)
-        {
-            // Remove name and date info
-            var nameNode = node.parentNode.parentNode;
-            nameNode.style.display = "none";
-            // Move to next TR and remove post info
-            var postNode = nameNode.nextSibling;
-            while (postNode.nodeName != "TR" && postNode != null)
-            {
-                postNode = postNode.nextSibling;
-            }
-            postNode.style.display = "none";
-            // Increment counter
-            UIL_postsRemoved++;
-        }
-    }
-
-    if (UIL_killQuotes)
-    {
-        // Get a list of quote headers
-        var nodes =
-            document.evaluate(
-            "//div[@class='quotetop']",
-            document,
-            null,
-            XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-            null);
-
-        // Remove posts containing quotes from ignored usernames
-        for (var i = 0; i < nodes.snapshotLength; i++)
-        {
-            var node = nodes.snapshotItem(i);
-            for (var j = 0; j < ignoredUsers.length; j++)
-            {
-                if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
-                {
-                    // Remove name and date info
-                    var nameNode = node.parentNode.parentNode.parentNode;
-                    nameNode.style.display = "none";
-                    // Move to next TR and remove post info
-                    var postNode = nameNode.nextSibling;
-                    while (postNode.nodeName != "TR" && postNode != null)
-                    {
-                        postNode = postNode.nextSibling;
-                    }
-                    postNode.style.display = "none";
-                    // Increment counter
-                    UIL_postsRemoved++;
-                    break;
-                }
-            }
-        }
-    }
-}
-
-// Remove topics from topic pages
-if (UIL_killTopics &&
-    (window.location.href.indexOf("showforum=") != -1 ||
-     window.location.href.indexOf("act=SF") != -1 ||
-     window.location.href.indexOf("searchid=") != -1))
-{
-    if (window.location.href.indexOf("searchid=") > -1)
-    {
-        topicStarterXPathQuery =
-            "//div[@class='borderwrap']/table/tbody/tr/td[5]/a[1]";
-    }
-    else
-    {
-        topicStarterXPathQuery =
-            "//table[@class='ipbtable']/tbody/tr/td[5]/a[1]";
-    }
-
-    var topicStarterLinkNodes =
-        document.evaluate(topicStarterXPathQuery, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-    for (var i = 0; i < topicStarterLinkNodes.snapshotLength; i++)
-    {
-        var topicStarterLinkNode = topicStarterLinkNodes.snapshotItem(i);
-        if (ignoredUsers.indexOf(topicStarterLinkNode.innerHTML) != -1)
-        {
-            var row = topicStarterLinkNode.parentNode.parentNode;
-            row.parentNode.removeChild(row);
-            UIL_postsRemoved++;
-        }
-    }
-}
-
-// Display information about number of posts removed
-if (UIL_notification && UIL_postsRemoved > 0)
-{
-    // Create an element to contain the information
-    var s = document.createElement("DIV");
-    s.id = "UIL-notification";
-    s.style.position = "fixed";
-    s.style.top = "0px";
-    s.style.right = "0px";
-    s.style.MozBorderRadiusBottomleft = "1em";
-    s.style.backgroundColor = "red";
-    s.style.color = "white";
-    s.style.padding = "3px 6px 5px 8px";
-    s.style.fontWeight = "bold";
-    var r = UIL_postsRemoved + " post";
-    if (UIL_postsRemoved > 1) r += "s";
-    r += " removed";
-    s.appendChild(document.createTextNode(r));
-    document.body.appendChild(s);
-
-    // Set up a function to remove the information
-    function removeUILStatus()
-    {
-        var st = document.getElementById("UIL-notification");
-        st.parentNode.removeChild(st);
-    }
-    window.setTimeout(removeUILStatus, 2500);
-}
+UIL.init();
 
 /* Menu Commands
 ------------------------------------------------------------------------- */
@@ -852,9 +977,9 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
             createIgnoredUserList();
             createTopicIgnoredUserList();
 
-            form.elements.namedItem("kill_quotes").checked = GM_getValue("killQuotes");
-            form.elements.namedItem("notify").checked = GM_getValue("notification");
-            form.elements.namedItem("kill_topics").checked = GM_getValue("killTopics");
+            form.elements.namedItem("kill_quotes").checked = UIL.Config.getKillQuotes();
+            form.elements.namedItem("notify").checked = UIL.Config.getNotification();
+            form.elements.namedItem("kill_topics").checked = UIL.Config.getKillTopics();
             form.elements.namedItem("close_button").addEventListener("click", function()
             {
                 unsafeWindow.top.document.body.removeChild(prefs);
@@ -862,9 +987,9 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
             }, false);
             form.elements.namedItem("save_button").addEventListener("click", function()
             {
-                GM_setValue("killQuotes", this.form.elements.kill_quotes.checked);
-                GM_setValue("notification", this.form.elements.notify.checked);
-                GM_setValue("killTopics", this.form.elements.kill_topics.checked);
+                UIL.Config.setKillQuotes(this.form.elements.kill_quotes.checked);
+                UIL.Config.setNotification(this.form.elements.notify.checked);
+                UIL.Config.setKillTopics(this.form.elements.kill_topics.checked);
                 unsafeWindow.top.document.body.removeChild(prefs);
                 unsafeWindow.top.document.body.removeChild(blocker);
             }, false);
@@ -885,27 +1010,3 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
     prefs.style.height = "100%";
     prefs.src = PREFS_HTML;
 });
-
-// Import Ignored User List menu command
-if (window.location.href.endsWith("/index.php?act=UserCP&CODE=ignore"))
-{
-    GM_registerMenuCommand("Import Ignored User List", function()
-    {
-        // Get a list of username links
-        var nodes =
-            document.evaluate(
-            "//div[@class='borderwrapm']/table/tbody/tr/td/b/a",
-            document,
-            null,
-            XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-            null);
-
-        var ignoredUsers = [];
-        for (var i = 0; i < nodes.snapshotLength; i++)
-        {
-            ignoredUsers.push(nodes.snapshotItem(i).innerHTML);
-        }
-
-        UIL.Config.setGloballyIgnoredUsers(newList);
-    });
-}
