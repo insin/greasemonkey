@@ -29,11 +29,19 @@
   <div class="module">
     <h2>User Ignore List Preferences</h2>
     <div class="form-row">
-      <label>Ignored Users:</label>
+      <label>Globally Ignored Users:</label>
       <div class="form-field">
         <input type="text" name="ignore_user"> <input type="button" value="Add" id="ignore_user_button" name="ignore_user_button">
         <ul id="ignored_users">
         </ul>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Per-Topic Ignored Users:</label>
+      <div class="form-field">
+        <input type="text" name="topic_ignore_user"> in <input type="text" name="topic_ignore"> <input type="button" value="Add" id="topic_ignore_user_button" name="topic_ignore_user_button">
+        <dl id="topic_ignored_users">
+        </dl>
       </div>
     </div>
     <div class="form-row checkbox-row">
