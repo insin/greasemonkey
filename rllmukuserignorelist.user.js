@@ -398,8 +398,9 @@ var UIL =
         {
             pageType = "topic";
         }
-        else if (window.location.href.toLowerCase().indexOf("act=post") != -1 ||
-                 window.location.href.endsWith("/index.php?"))
+        else if ((window.location.href.toLowerCase().indexOf("act=post") != -1 ||
+                  window.location.href.endsWith("/index.php?")) &&
+                 document.forms.namedItem("REPLIER").elements.namedItem("t") !== null)
         {
             pageType = "postEditPreview";
         }
