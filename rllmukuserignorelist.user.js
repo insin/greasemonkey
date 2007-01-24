@@ -435,7 +435,7 @@ var UIL =
     topicPageProcessor: function()
     {
         var itemsRemoved = 0;
-        var topicId = document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        var topicId = this.getTopicIdFromCurrentPage();
         var ignoredUsers =
             UIL.Config.getGloballyIgnoredUsers()
                 .concat(UIL.Config.getIgnoredUsersForTopic(topicId));
@@ -494,10 +494,15 @@ var UIL =
         return itemsRemoved;
     },
 
+    getTopicIdFromCurrentPage: function()
+    {
+        return document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+    },
+
     postEditPreviewPageProcessor: function()
     {
         var itemsRemoved = 0;
-        var topicId = document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        var topicId = this.getTopicIdFromCurrentPage();
         var ignoredUsers =
             UIL.Config.getGloballyIgnoredUsers()
                 .concat(UIL.Config.getIgnoredUsersForTopic(topicId));
@@ -643,9 +648,35 @@ var UIL =
         }, 3000);
     },
 
+    addIgnoredUserForCurrentTopic: function()
+    {
+        var userName = prompt("Enter a user's name");
+        if (userName)
+        {
+            if (this.getGloballyIgnoredUsers().indexOf(userName) != -1)
+            {
+                alert("You're already ignoring " + userName + " globally");
+                return;
+            }
+
+            var topicId = this.getTopicIdFromCurrentPage();
+            var added = UIL.Config.addIgnoredUserForTopic(topicId, userName);
+            if (!added)
+            {
+                alert("You're already ignoring " + username + " in this topic");
+            }
+        }
+    },
+
     registerMenuCommands: function(pageType)
     {
         GM_registerMenuCommand("User Ignore List Preferences", UIL.UI.show.bind(UIL.UI));
+
+        if (pageType == "topic")
+        {
+            GM_registerMenuCommand("Ignore A User In This Topic",
+                                   this.addIgnoredUserForCurrentTopic.bind(this));
+        }
 
         if (pageType == "ignoredUsers")
         {
