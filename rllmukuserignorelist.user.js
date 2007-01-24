@@ -10,7 +10,10 @@
 
 /* Changelog
  * ---------
- * 2007-01-24 Added ignoring of specific users only in specific topics.
+ * 2007-01-24 "Complex" configuration data is now stored as JSON - added the
+ *            JSON library to the script for this purpose.
+ *            Added ignoring of specific users only in specific topics.
+ *            Refactored the script, placing everything under a "UIL" object.
  * 2006-11-02 Added GUI for configuration instead of using clunky menu items.
  *            Added removal of topics created by ignored users.
  * 2006-09-09 Fixed bug where the number of posts reported as being removed was
@@ -23,8 +26,6 @@
  * 2005-05-26 Functionally complete version finished, tidied up and commented.
  * -------------------------------------------------------------------------- */
 
-/* Utility Methods
-------------------------------------------------------------------------- */
 String.prototype.endsWith = function(s)
 {
     lastIndex = this.lastIndexOf(s);
@@ -377,6 +378,9 @@ outer:          while (next()) {
     }
 };
 
+/**
+ * Processing of the current page.
+ */
 var UIL =
 {
     init: function()
@@ -397,13 +401,13 @@ var UIL =
         else if (window.location.href.toLowerCase().indexOf("act=post") != -1 ||
                  window.location.href.endsWith("/index.php?"))
         {
-            pageType = "topicListing";
+            pageType = "postEditPreview";
         }
         else if (window.location.href.indexOf("showforum=") != -1 ||
                  window.location.href.indexOf("act=SF") != -1 ||
                  window.location.href.indexOf("searchid=") != -1)
         {
-            pageType = "postEditPreview";
+            pageType = "topicListing";
         }
         else if (window.location.href.endsWith("/index.php?act=UserCP&CODE=ignore"))
         {
@@ -641,6 +645,8 @@ var UIL =
 
     registerMenuCommands: function(pageType)
     {
+        GM_registerMenuCommand("User Ignore List Preferences", UIL.UI.show.bind(UIL.UI));
+
         if (pageType == "ignoredUsers")
         {
             GM_registerMenuCommand("Import Ignored User List",
@@ -649,6 +655,9 @@ var UIL =
     }
 };
 
+/**
+ * Configuration.
+ */
 UIL.Config =
 {
     getGloballyIgnoredUsers: function()
@@ -818,28 +827,82 @@ UIL.Config =
     }
 };
 
-UIL.init();
-
-/* Menu Commands
-------------------------------------------------------------------------- */
-var PREFS_HTML = "data:text/html;charset=utf-8;base64,PCFET0NUWVBFIGh0bWwgUFVCTElDICItLy9XM0MvL0RURCBIVE1MIDQuMDEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvVFIvaHRtbDQvc3RyaWN0LmR0ZCI%2BDQo8aHRtbCBsYW5nPSJlbiI%2BDQo8aGVhZD4NCiAgPHRpdGxlPlVzZXJzY3JpcHQgUHJlZmVyZW5jZXM8L3RpdGxlPg0KICA8bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD1VVEYtOCI%2BDQogIDxtZXRhIG5hbWU9IkF1dGhvciIgY29udGVudD0iSm9uYXRoYW4gQnVjaGFuYW4iPg0KICA8bWV0YSBuYW1lPSJDb3B5cmlnaHQiIGNvbnRlbnQ9IiZjb3B5OyAyMDA2LCBKb25hdGhhbiBCdWNoYW5hbiI%2BDQogIDxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI%2BDQogIGJvZHkgeyBtYXJnaW46MDsgcGFkZGluZzowOyBmb250LXNpemU6MTJweDsgZm9udC1mYW1pbHk6Ikx1Y2lkYSBHcmFuZGUiLCJCaXRzdHJlYW0gVmVyYSBTYW5zIixWZXJkYW5hLEFyaWFsLHNhbnMtc2VyaWY7IGNvbG9yOiMzMzM7IHdpZHRoOiA1MDBweDsgbWFyZ2luOiAwIGF1dG87IH0NCiAgLm1vZHVsZSB7IGJvcmRlcjogMXB4IHNvbGlkICNjY2M7IG1hcmdpbi1ib3R0b206IDVweDsgYmFja2dyb3VuZC1jb2xvcjogI2ZmZjsgfQ0KICAubW9kdWxlIGgyLCAubW9kdWxlIGNhcHRpb24geyBtYXJnaW46IDA7IHBhZGRpbmc6IDJweCA1cHggM3B4IDVweDsgZm9udC1zaXplOiAxMXB4OyB0ZXh0LWFsaWduOiBsZWZ0OyBmb250LXdlaWdodDogYm9sZDsgYmFja2dyb3VuZDogIzdDQTBDNyB1cmwoImRhdGE6aW1hZ2UvZ2lmO2Jhc2U2NCxSMGxHT0RsaEVRQWZBT1lBQUx6UzZiREo0NCUyQncwWUdseXJ2UjZMVE01WWlxem42aXlJT255NENreWFHJTJCMjQydTBLSyUyQjI3alA1M3VneG9pcXpZYW96Snk2MkpxNDEzdWd4NHFzejUlMkI4MmFUQTNLN0g0b1NueTUlMkI4MnJiTjVyblE2S1RBM2FmQzNyTEw1SlMwMUtuRTM3Yk81biUyQmt5Wnk1Mkh5aHlLN0k0YkxLNUxqUDVyblE1NVcwMUtuRDM1ZTIxWDZqeUs3SDRaS3kwNnZHNFh5aXlJeXQwSlN6MUxISjQ0dXN6cGUxMW55aHg3clE1NWUyMXBHeDA2ZkIzb3Fzem4yaXg1S3gwcGUxMWFTJTJGM0lLbHlxekc0S2JDM3BxMzFydlI2YXpGNExYTTVZeXUwS3ZGNGJQSzQ1bTQxcWZDM2J2UzZIMmh4NnpHNFlLbXlyUEs1S3pGNFpXejFJeXV6NXE0MW9hcHpZQ2p5Wkt5MHFyRTM3Zk41cXJENEolMkI3MnBDdzBaR3kwb0dteW8lMkJ2MGJUTjViWE41Wm00MTUyNjJKeTYyWVdveklXcHpLckQzNGFvemJyUjZJJTJCdjByak81cmpPNTZmQjNhbkU0SVNteTdQTDVMZk81cCUyQjcyYmJONVlhcHpIdWh4cmZQNW55Z3g3ZlA1Nks5MjQlMkJ3MHJISjRxWEEzWXVyejM2anlZdXN6eUg1QkFBQUFBQUFMQUFBQUFBUkFCOEFBQWYlMkZnQUNDZzRTRmdnUUVURVJNaUloRUJHbVBqQVFiR3pjM0tDaVdtWlkzbFJzb2F3MmpkaWNuRGFlb3FIaHNEUm9ocjdBaFdWbHhjeHE0SWJCZ1JnVyUyQlliMWhCVVpndnNZbUhsQWVTY2pJSHM4bUpuQlFjQUVCTTliWTFudlcyZGdYTFMwbExSY2w1ZVBtNEJjWFJVRXZUa2hSN2U4dlFWRklMMFZJS201WUlDQXFBQXJVZ2lXZ2xqTkNkQ3pwMEtaRGg0VTZPdWdRSWtUaUVnNGNmbkN3WUNHakJUNGNOWExrb0lBQmc1SW9UU3BZZVRJUGd3b1pNbXlwQUZObUJwb1Y1TVNzTUdiRWlBZ1JmZ0lkUThZbkdhQVJKQ2hWTW9RS0ZhWkt4WWlSb0VUQ2tCb3JWdFR3c1FJSERoOCUyQmNHRDlxalhGQnhreVVwaVZjdmJEMmhReXFUNjQ2SkVqeDVVZWM3dTRzSnNqcndzQkFyZ0FEdnhGUUdFMUF2UU1qaEZqZ1dQSE1ZNGNlZHg0eWhFS21HblEyRUZCTTRVZGZTajglMkJiempnUUhUQmxJJTJGV0syYXRZRXlhQ0NZZ1VEYkRCMElWY3hVS1VNYkFnSU1DSUwlMkZmaE1jT0lianY1OEFHZUJsT2ZNbkE2STdqNTVBaElqcTFhOWJTWkJnTzNZZUxGZ2NHSDlBUFBueTRmM0FzTUdlUkJNU0pIakFhR0pEZmhNZUpPNDRtTERmUVIzJTJCRXdUWW53TU9CQUlBT3clM0QlM0QiKSB0b3AgbGVmdCByZXBlYXQteDsgY29sb3I6ICNmZmY7IGJvcmRlci1ib3R0b206IDA7IH0NCg0KICAuZm9ybS1yb3cgeyBvdmVyZmxvdzogaGlkZGVuOyBwYWRkaW5nOiA4cHggMTJweDsgZm9udC1zaXplOiAxMXB4OyBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2VlZTsgYm9yZGVyLXJpZ2h0OiAxcHggc29saWQgI2VlZTsgfQ0KICAuZm9ybS1yb3cgaW1nLCAuZm9ybS1yb3cgaW5wdXQgeyB2ZXJ0aWNhbC1hbGlnbjogbWlkZGxlOyB9DQogIC5mb3JtLWZpZWxkIHsgZmxvYXQ6IGxlZnQ7IH0NCiAgLmFsaWduZWQgbGFiZWwgeyBwYWRkaW5nOiAwIDFlbSAzcHggMDsgZmxvYXQ6IGxlZnQ7IHdpZHRoOiA4ZW07IH0NCiAgLmNoZWNrYm94LXJvdyBsYWJlbCB7IHBhZGRpbmc6IDA7IGZsb2F0OiBub25lOyB3aWR0aDogYXV0bzsgfQ0KICAuc3VibWl0LXJvdyB7IHBhZGRpbmc6IDhweCAxMnB4OyB0ZXh0LWFsaWduOiByaWdodDsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNlZWU7IGJvcmRlci1yaWdodDogMXB4IHNvbGlkICNlZWU7IH0NCg0KICB1bCB7IG1hcmdpbjogLjVlbSAwIDAgMDsgcGFkZGluZzogMCAwIDAgMmVtOyBsaW5lLWhlaWdodDogMS41ZW07IH0NCiAgbGkgeyBtYXJnaW46IDA7IHBhZGRpbmc6IDA7IH0NCg0KICBzcGFuLmNvbnRyb2wgeyB0ZXh0LWRlY29yYXRpb246IHVuZGVybGluZTsgY3Vyc29yOiBwb2ludGVyOyBjb2xvcjogIzAwZjsgfQ0KICA8L3N0eWxlPg0KPC9oZWFkPg0KPGJvZHk%2BDQoNCjxmb3JtIG5hbWU9InByZWZlcmVuY2VzIiBpZD0icHJlZmVyZW5jZXMiIGNsYXNzPSJhbGlnbmVkIj4NCiAgPGRpdiBjbGFzcz0ibW9kdWxlIj4NCiAgICA8aDI%2BVXNlciBJZ25vcmUgTGlzdCBQcmVmZXJlbmNlczwvaDI%2BDQogICAgPGRpdiBjbGFzcz0iZm9ybS1yb3ciPg0KICAgICAgPGxhYmVsPkdsb2JhbGx5IElnbm9yZWQgVXNlcnM6PC9sYWJlbD4NCiAgICAgIDxkaXYgY2xhc3M9ImZvcm0tZmllbGQiPg0KICAgICAgICA8aW5wdXQgdHlwZT0idGV4dCIgbmFtZT0iaWdub3JlX3VzZXIiPiA8aW5wdXQgdHlwZT0iYnV0dG9uIiB2YWx1ZT0iQWRkIiBpZD0iaWdub3JlX3VzZXJfYnV0dG9uIiBuYW1lPSJpZ25vcmVfdXNlcl9idXR0b24iPg0KICAgICAgICA8dWwgaWQ9Imlnbm9yZWRfdXNlcnMiPg0KICAgICAgICA8L3VsPg0KICAgICAgPC9kaXY%2BDQogICAgPC9kaXY%2BDQogICAgPGRpdiBjbGFzcz0iZm9ybS1yb3ciPg0KICAgICAgPGxhYmVsPlBlci1Ub3BpYyBJZ25vcmVkIFVzZXJzOjwvbGFiZWw%2BDQogICAgICA8ZGl2IGNsYXNzPSJmb3JtLWZpZWxkIj4NCiAgICAgICAgPGlucHV0IHR5cGU9InRleHQiIG5hbWU9InRvcGljX2lnbm9yZV91c2VyIj4gaW4gPGlucHV0IHR5cGU9InRleHQiIG5hbWU9InRvcGljX2lnbm9yZSI%2BIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJBZGQiIGlkPSJ0b3BpY19pZ25vcmVfdXNlcl9idXR0b24iIG5hbWU9InRvcGljX2lnbm9yZV91c2VyX2J1dHRvbiI%2BDQogICAgICAgIDxkbCBpZD0idG9waWNfaWdub3JlZF91c2VycyI%2BDQogICAgICAgIDwvZGw%2BDQogICAgICA8L2Rpdj4NCiAgICA8L2Rpdj4NCiAgICA8ZGl2IGNsYXNzPSJmb3JtLXJvdyBjaGVja2JveC1yb3ciPg0KICAgICAgPGxhYmVsIGZvcj0ia2lsbF9xdW90ZXMiPjxpbnB1dCB0eXBlPSJjaGVja2JveCIgbmFtZT0ia2lsbF9xdW90ZXMiIGlkPSJraWxsX3F1b3RlcyI%2BIFJlbW92ZSBwb3N0cyB3aGljaCBxdW90ZSBpZ25vcmVkIHVzZXJzPC9sYWJlbD4NCiAgICA8L2Rpdj4NCiAgICA8ZGl2IGNsYXNzPSJmb3JtLXJvdyBjaGVja2JveC1yb3ciPg0KICAgICAgPGxhYmVsIGZvcj0ibm90aWZ5Ij48aW5wdXQgdHlwZT0iY2hlY2tib3giIG5hbWU9Im5vdGlmeSIgaWQ9Im5vdGlmeSI%2BIERpc3BsYXkgbm90aWZpY2F0aW9uIHdoZW4gcG9zdHMgYXJlIHJlbW92ZWQ8L2xhYmVsPg0KICAgIDwvZGl2Pg0KICAgIDxkaXYgY2xhc3M9ImZvcm0tcm93IGNoZWNrYm94LXJvdyI%2BDQogICAgICA8bGFiZWwgZm9yPSJraWxsX3RvcGljcyI%2BPGlucHV0IHR5cGU9ImNoZWNrYm94IiBuYW1lPSJraWxsX3RvcGljcyIgaWQ9ImtpbGxfdG9waWNzIj4gUmVtb3ZlIHRvcGljcyBjcmVhdGVkIGJ5IGlnbm9yZWQgdXNlcnM8L2xhYmVsPg0KICAgIDwvZGl2Pg0KICA8L2Rpdj4NCg0KICA8ZGl2IGNsYXNzPSJtb2R1bGUiPg0KICAgIDxkaXYgY2xhc3M9InN1Ym1pdC1yb3ciPg0KICAgICAgPGlucHV0IHR5cGU9ImJ1dHRvbiIgdmFsdWU9IkNsb3NlIiBuYW1lPSJjbG9zZV9idXR0b24iIGlkPSJjbG9zZV9idXR0b24iPg0KICAgICAgPGlucHV0IHR5cGU9ImJ1dHRvbiIgdmFsdWU9IlNhdmUgUHJlZmVyZW5jZXMiIG5hbWU9InNhdmVfYnV0dG9uIiBpZD0ic2F2ZV9idXR0b24iPg0KICAgIDwvZGl2Pg0KICA8L2Rpdj4NCjwvZm9ybT4NCg0KPC9ib2R5Pg0KPC9odG1sPg%3D%3D";
-
-GM_registerMenuCommand("User Ignore List Preferences", function()
+/**
+ * Preferences User Interface (UI).
+ */
+UIL.UI =
 {
-    var blocker = document.createElement("div");
-    blocker.id = "uil_blocker";
-    blocker.style.position = "fixed";
-    blocker.style.top = "0px";
-    blocker.style.right = "0px";
-    blocker.style.bottom = "0px";
-    blocker.style.left = "0px";
-    blocker.style.backgroundColor = "#000";
-    blocker.style.opacity = "0.5";
-    document.body.appendChild(blocker);
+    PREFS_HTML: "data:text/html;charset=utf-8;base64,PCFET0NUWVBFIGh0bWwgUFVCTElDICItLy9XM0MvL0RURCBIVE1MIDQuMDEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvVFIvaHRtbDQvc3RyaWN0LmR0ZCI%2BDQo8aHRtbCBsYW5nPSJlbiI%2BDQo8aGVhZD4NCiAgPHRpdGxlPlVzZXJzY3JpcHQgUHJlZmVyZW5jZXM8L3RpdGxlPg0KICA8bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD1VVEYtOCI%2BDQogIDxtZXRhIG5hbWU9IkF1dGhvciIgY29udGVudD0iSm9uYXRoYW4gQnVjaGFuYW4iPg0KICA8bWV0YSBuYW1lPSJDb3B5cmlnaHQiIGNvbnRlbnQ9IiZjb3B5OyAyMDA2LCBKb25hdGhhbiBCdWNoYW5hbiI%2BDQogIDxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI%2BDQogIGJvZHkgeyBtYXJnaW46MDsgcGFkZGluZzowOyBmb250LXNpemU6MTJweDsgZm9udC1mYW1pbHk6Ikx1Y2lkYSBHcmFuZGUiLCJCaXRzdHJlYW0gVmVyYSBTYW5zIixWZXJkYW5hLEFyaWFsLHNhbnMtc2VyaWY7IGNvbG9yOiMzMzM7IHdpZHRoOiA1MDBweDsgbWFyZ2luOiAwIGF1dG87IH0NCiAgLm1vZHVsZSB7IGJvcmRlcjogMXB4IHNvbGlkICNjY2M7IG1hcmdpbi1ib3R0b206IDVweDsgYmFja2dyb3VuZC1jb2xvcjogI2ZmZjsgfQ0KICAubW9kdWxlIGgyLCAubW9kdWxlIGNhcHRpb24geyBtYXJnaW46IDA7IHBhZGRpbmc6IDJweCA1cHggM3B4IDVweDsgZm9udC1zaXplOiAxMXB4OyB0ZXh0LWFsaWduOiBsZWZ0OyBmb250LXdlaWdodDogYm9sZDsgYmFja2dyb3VuZDogIzdDQTBDNyB1cmwoImRhdGE6aW1hZ2UvZ2lmO2Jhc2U2NCxSMGxHT0RsaEVRQWZBT1lBQUx6UzZiREo0NCUyQncwWUdseXJ2UjZMVE01WWlxem42aXlJT255NENreWFHJTJCMjQydTBLSyUyQjI3alA1M3VneG9pcXpZYW96Snk2MkpxNDEzdWd4NHFzejUlMkI4MmFUQTNLN0g0b1NueTUlMkI4MnJiTjVyblE2S1RBM2FmQzNyTEw1SlMwMUtuRTM3Yk81biUyQmt5Wnk1Mkh5aHlLN0k0YkxLNUxqUDVyblE1NVcwMUtuRDM1ZTIxWDZqeUs3SDRaS3kwNnZHNFh5aXlJeXQwSlN6MUxISjQ0dXN6cGUxMW55aHg3clE1NWUyMXBHeDA2ZkIzb3Fzem4yaXg1S3gwcGUxMWFTJTJGM0lLbHlxekc0S2JDM3BxMzFydlI2YXpGNExYTTVZeXUwS3ZGNGJQSzQ1bTQxcWZDM2J2UzZIMmh4NnpHNFlLbXlyUEs1S3pGNFpXejFJeXV6NXE0MW9hcHpZQ2p5Wkt5MHFyRTM3Zk41cXJENEolMkI3MnBDdzBaR3kwb0dteW8lMkJ2MGJUTjViWE41Wm00MTUyNjJKeTYyWVdveklXcHpLckQzNGFvemJyUjZJJTJCdjByak81cmpPNTZmQjNhbkU0SVNteTdQTDVMZk81cCUyQjcyYmJONVlhcHpIdWh4cmZQNW55Z3g3ZlA1Nks5MjQlMkJ3MHJISjRxWEEzWXVyejM2anlZdXN6eUg1QkFBQUFBQUFMQUFBQUFBUkFCOEFBQWYlMkZnQUNDZzRTRmdnUUVURVJNaUloRUJHbVBqQVFiR3pjM0tDaVdtWlkzbFJzb2F3MmpkaWNuRGFlb3FIaHNEUm9ocjdBaFdWbHhjeHE0SWJCZ1JnVyUyQlliMWhCVVpndnNZbUhsQWVTY2pJSHM4bUpuQlFjQUVCTTliWTFudlcyZGdYTFMwbExSY2w1ZVBtNEJjWFJVRXZUa2hSN2U4dlFWRklMMFZJS201WUlDQXFBQXJVZ2lXZ2xqTkNkQ3pwMEtaRGg0VTZPdWdRSWtUaUVnNGNmbkN3WUNHakJUNGNOWExrb0lBQmc1SW9UU3BZZVRJUGd3b1pNbXlwQUZObUJwb1Y1TVNzTUdiRWlBZ1JmZ0lkUThZbkdhQVJKQ2hWTW9RS0ZhWkt4WWlSb0VUQ2tCb3JWdFR3c1FJSERoOCUyQmNHRDlxalhGQnhreVVwaVZjdmJEMmhReXFUNjQ2SkVqeDVVZWM3dTRzSnNqcndzQkFyZ0FEdnhGUUdFMUF2UU1qaEZqZ1dQSE1ZNGNlZHg0eWhFS21HblEyRUZCTTRVZGZTajglMkJiempnUUhUQmxJJTJGV0syYXRZRXlhQ0NZZ1VEYkRCMElWY3hVS1VNYkFnSU1DSUwlMkZmaE1jT0lianY1OEFHZUJsT2ZNbkE2STdqNTVBaElqcTFhOWJTWkJnTzNZZUxGZ2NHSDlBUFBueTRmM0FzTUdlUkJNU0pIakFhR0pEZmhNZUpPNDRtTERmUVIzJTJCRXdUWW53TU9CQUlBT3clM0QlM0QiKSB0b3AgbGVmdCByZXBlYXQteDsgY29sb3I6ICNmZmY7IGJvcmRlci1ib3R0b206IDA7IH0NCg0KICAuZm9ybS1yb3cgeyBvdmVyZmxvdzogaGlkZGVuOyBwYWRkaW5nOiA4cHggMTJweDsgZm9udC1zaXplOiAxMXB4OyBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2VlZTsgYm9yZGVyLXJpZ2h0OiAxcHggc29saWQgI2VlZTsgfQ0KICAuZm9ybS1yb3cgaW1nLCAuZm9ybS1yb3cgaW5wdXQgeyB2ZXJ0aWNhbC1hbGlnbjogbWlkZGxlOyB9DQogIC5mb3JtLWZpZWxkIHsgZmxvYXQ6IGxlZnQ7IH0NCiAgLmFsaWduZWQgbGFiZWwgeyBwYWRkaW5nOiAwIDFlbSAzcHggMDsgZmxvYXQ6IGxlZnQ7IHdpZHRoOiA4ZW07IH0NCiAgLmNoZWNrYm94LXJvdyBsYWJlbCB7IHBhZGRpbmc6IDA7IGZsb2F0OiBub25lOyB3aWR0aDogYXV0bzsgfQ0KICAuc3VibWl0LXJvdyB7IHBhZGRpbmc6IDhweCAxMnB4OyB0ZXh0LWFsaWduOiByaWdodDsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNlZWU7IGJvcmRlci1yaWdodDogMXB4IHNvbGlkICNlZWU7IH0NCg0KICB1bCB7IG1hcmdpbjogLjVlbSAwIDAgMDsgcGFkZGluZzogMCAwIDAgMmVtOyBsaW5lLWhlaWdodDogMS41ZW07IH0NCiAgbGkgeyBtYXJnaW46IDA7IHBhZGRpbmc6IDA7IH0NCg0KICBzcGFuLmNvbnRyb2wgeyB0ZXh0LWRlY29yYXRpb246IHVuZGVybGluZTsgY3Vyc29yOiBwb2ludGVyOyBjb2xvcjogIzAwZjsgfQ0KICA8L3N0eWxlPg0KPC9oZWFkPg0KPGJvZHk%2BDQoNCjxmb3JtIG5hbWU9InByZWZlcmVuY2VzIiBpZD0icHJlZmVyZW5jZXMiIGNsYXNzPSJhbGlnbmVkIj4NCiAgPGRpdiBjbGFzcz0ibW9kdWxlIj4NCiAgICA8aDI%2BVXNlciBJZ25vcmUgTGlzdCBQcmVmZXJlbmNlczwvaDI%2BDQogICAgPGRpdiBjbGFzcz0iZm9ybS1yb3ciPg0KICAgICAgPGxhYmVsPkdsb2JhbGx5IElnbm9yZWQgVXNlcnM6PC9sYWJlbD4NCiAgICAgIDxkaXYgY2xhc3M9ImZvcm0tZmllbGQiPg0KICAgICAgICA8aW5wdXQgdHlwZT0idGV4dCIgbmFtZT0iaWdub3JlX3VzZXIiPiA8aW5wdXQgdHlwZT0iYnV0dG9uIiB2YWx1ZT0iQWRkIiBpZD0iaWdub3JlX3VzZXJfYnV0dG9uIiBuYW1lPSJpZ25vcmVfdXNlcl9idXR0b24iPg0KICAgICAgICA8dWwgaWQ9Imlnbm9yZWRfdXNlcnMiPg0KICAgICAgICA8L3VsPg0KICAgICAgPC9kaXY%2BDQogICAgPC9kaXY%2BDQogICAgPGRpdiBjbGFzcz0iZm9ybS1yb3ciPg0KICAgICAgPGxhYmVsPlBlci1Ub3BpYyBJZ25vcmVkIFVzZXJzOjwvbGFiZWw%2BDQogICAgICA8ZGl2IGNsYXNzPSJmb3JtLWZpZWxkIj4NCiAgICAgICAgPGlucHV0IHR5cGU9InRleHQiIG5hbWU9InRvcGljX2lnbm9yZV91c2VyIj4gaW4gPGlucHV0IHR5cGU9InRleHQiIG5hbWU9InRvcGljX2lnbm9yZSI%2BIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJBZGQiIGlkPSJ0b3BpY19pZ25vcmVfdXNlcl9idXR0b24iIG5hbWU9InRvcGljX2lnbm9yZV91c2VyX2J1dHRvbiI%2BDQogICAgICAgIDxkbCBpZD0idG9waWNfaWdub3JlZF91c2VycyI%2BDQogICAgICAgIDwvZGw%2BDQogICAgICA8L2Rpdj4NCiAgICA8L2Rpdj4NCiAgICA8ZGl2IGNsYXNzPSJmb3JtLXJvdyBjaGVja2JveC1yb3ciPg0KICAgICAgPGxhYmVsIGZvcj0ia2lsbF9xdW90ZXMiPjxpbnB1dCB0eXBlPSJjaGVja2JveCIgbmFtZT0ia2lsbF9xdW90ZXMiIGlkPSJraWxsX3F1b3RlcyI%2BIFJlbW92ZSBwb3N0cyB3aGljaCBxdW90ZSBpZ25vcmVkIHVzZXJzPC9sYWJlbD4NCiAgICA8L2Rpdj4NCiAgICA8ZGl2IGNsYXNzPSJmb3JtLXJvdyBjaGVja2JveC1yb3ciPg0KICAgICAgPGxhYmVsIGZvcj0ibm90aWZ5Ij48aW5wdXQgdHlwZT0iY2hlY2tib3giIG5hbWU9Im5vdGlmeSIgaWQ9Im5vdGlmeSI%2BIERpc3BsYXkgbm90aWZpY2F0aW9uIHdoZW4gcG9zdHMgYXJlIHJlbW92ZWQ8L2xhYmVsPg0KICAgIDwvZGl2Pg0KICAgIDxkaXYgY2xhc3M9ImZvcm0tcm93IGNoZWNrYm94LXJvdyI%2BDQogICAgICA8bGFiZWwgZm9yPSJraWxsX3RvcGljcyI%2BPGlucHV0IHR5cGU9ImNoZWNrYm94IiBuYW1lPSJraWxsX3RvcGljcyIgaWQ9ImtpbGxfdG9waWNzIj4gUmVtb3ZlIHRvcGljcyBjcmVhdGVkIGJ5IGlnbm9yZWQgdXNlcnM8L2xhYmVsPg0KICAgIDwvZGl2Pg0KICA8L2Rpdj4NCg0KICA8ZGl2IGNsYXNzPSJtb2R1bGUiPg0KICAgIDxkaXYgY2xhc3M9InN1Ym1pdC1yb3ciPg0KICAgICAgPGlucHV0IHR5cGU9ImJ1dHRvbiIgdmFsdWU9IkNsb3NlIiBuYW1lPSJjbG9zZV9idXR0b24iIGlkPSJjbG9zZV9idXR0b24iPg0KICAgICAgPGlucHV0IHR5cGU9ImJ1dHRvbiIgdmFsdWU9IlNhdmUgUHJlZmVyZW5jZXMiIG5hbWU9InNhdmVfYnV0dG9uIiBpZD0ic2F2ZV9idXR0b24iPg0KICAgIDwvZGl2Pg0KICA8L2Rpdj4NCjwvZm9ybT4NCg0KPC9ib2R5Pg0KPC9odG1sPg%3D%3D",
 
-    function addGloballyIgnoredUser()
+    show: function()
     {
-        var form = prefs.contentDocument.forms.namedItem("preferences");
+        var blocker = document.createElement("div");
+        this.blocker = blocker;
+        blocker.id = "uil_blocker";
+        blocker.style.position = "fixed";
+        blocker.style.top = "0px";
+        blocker.style.right = "0px";
+        blocker.style.bottom = "0px";
+        blocker.style.left = "0px";
+        blocker.style.backgroundColor = "#000";
+        blocker.style.opacity = "0.5";
+        document.body.appendChild(blocker);
+
+        var prefs = document.createElement("iframe");
+        prefs.addEventListener("load", this.preferenceDocumentLoadHandler.bind(this), false);
+        this.prefs = prefs;
+
+        document.body.appendChild(prefs);
+
+        prefs.id = "uil_preferences";
+        prefs.name = "uil_preferences";
+        prefs.style.position = "fixed";
+        prefs.style.top = "1em";
+        prefs.style.left = "0px";
+        prefs.style.right = "0px";
+        prefs.style.border = "none";
+        prefs.style.height = "100%";
+        prefs.src = this.PREFS_HTML;
+    },
+
+    hide: function()
+    {
+        document.body.removeChild(this.prefs);
+        document.body.removeChild(this.blocker);
+        this.prefs = null;
+        this.blocker = null;
+    },
+
+    preferenceDocumentLoadHandler: function()
+    {
+        var form = this.prefs.contentDocument.forms.namedItem("preferences");
+
+        // Set up form state
+        this.populateGloballyIgnoredUserList();
+        this.populatePerTopicIgnoredUserList();
+        form.elements.namedItem("kill_quotes").checked = UIL.Config.getKillQuotes();
+        form.elements.namedItem("notify").checked = UIL.Config.getNotification();
+        form.elements.namedItem("kill_topics").checked = UIL.Config.getKillTopics();
+
+        // Set up event handlers
+        form.elements.namedItem("close_button").addEventListener("click", this.hide.bind(this), false);
+        form.elements.namedItem("save_button").addEventListener("click", this.saveConfigurationHandler.bind(this), false);
+        form.elements.namedItem("ignore_user_button").addEventListener("click", this.addGloballyIgnoredUserHandler.bind(this), false);
+        form.elements.namedItem("topic_ignore_user_button").addEventListener("click", this.addPerTopicIgnoredUserHandler.bind(this), false);
+    },
+
+    saveConfigurationHandler: function()
+    {
+        var form = this.prefs.contentDocument.forms.namedItem("preferences");
+        UIL.Config.setKillQuotes(form.elements.namedItem("kill_quotes").checked);
+        UIL.Config.setNotification(form.elements.namedItem("notify").checked);
+        UIL.Config.setKillTopics(form.elements.namedItem("kill_topics").checked);
+        this.hide();
+    },
+
+    addGloballyIgnoredUserHandler: function()
+    {
+        var form = this.prefs.contentDocument.forms.namedItem("preferences");
         var ignoredUser = form.elements.namedItem("ignore_user");
         var userName = ignoredUser.value;
         if (userName.length > 0)
@@ -848,18 +911,18 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
             if (added)
             {
                 ignoredUser.value = "";
-                createIgnoredUserList();
+                this.populateGloballyIgnoredUserList();
             }
             else
             {
                 alert("You're already ignoring " + userName);
             }
         }
-    }
+    },
 
-    function addPerTopicIgnoredUser()
+    addPerTopicIgnoredUserHandler: function()
     {
-        var form = prefs.contentDocument.forms.namedItem("preferences");
+        var form = this.prefs.contentDocument.forms.namedItem("preferences");
         var ignoredUser = form.elements.namedItem("topic_ignore_user");
         var ignoredTopic = form.elements.namedItem("topic_ignore");
         var userName = ignoredUser.value;
@@ -869,7 +932,7 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
             var added = UIL.Config.addIgnoredUserForTopic(topicId, userName);
             if (added)
             {
-                createTopicIgnoredUserList();
+                this.populatePerTopicIgnoredUserList();
                 ignoredUser.value = "";
                 ignoredTopic.value = "";
             }
@@ -878,35 +941,35 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
                 alert("You're already ignoring " + userName + " in topic " + topicId);
             }
         }
-    }
+    },
 
-    function unignoreUser(userName)
+    createGloballyUnignoreUserHandler: function(userName)
     {
         return function()
         {
             if (confirm("Are you sure you want to unignore " + userName + "?"))
             {
                 UIL.Config.removeGloballyIgnoredUser(userName);
-                createIgnoredUserList();
+                this.populateGloballyIgnoredUserList();
             }
-        };
-    }
+        }.bind(this);
+    },
 
-    function unignoreTopicUser(userName, topicId)
+    createPerTopicUnignoreUserHandler: function(userName, topicId)
     {
         return function()
         {
             if (confirm("Are you sure you want to unignore " + userName + " in topic " + topicId + "?"))
             {
                 UIL.Config.removeIgnoredUserForTopic(topicId, userName);
-                createTopicIgnoredUserList();
+                this.populatePerTopicIgnoredUserList();
             }
-        };
-    }
+        }.bind(this);
+    },
 
-    function createIgnoredUserList()
+    populateGloballyIgnoredUserList: function()
     {
-        var document = prefs.contentDocument;
+        var document = this.prefs.contentDocument;
         var list = document.getElementById("ignored_users");
         while (list.firstChild)
         {
@@ -919,18 +982,18 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
             var span = document.createElement("span");
             span.appendChild(document.createTextNode("Unignore"));
             span.className = "control";
-            span.addEventListener("click", unignoreUser(userName), false);
+            span.addEventListener("click", this.createGloballyUnignoreUserHandler(userName), false);
 
             li.appendChild(document.createTextNode(userName + " ("));
             li.appendChild(span);
             li.appendChild(document.createTextNode(")"));
             list.appendChild(li);
-        });
-    }
+        }.bind(this));
+    },
 
-    function createTopicIgnoredUserList()
+    populatePerTopicIgnoredUserList: function()
     {
-        var document = prefs.contentDocument;
+        var document = this.prefs.contentDocument;
         var list = document.getElementById("topic_ignored_users");
         while (list.firstChild)
         {
@@ -956,57 +1019,16 @@ GM_registerMenuCommand("User Ignore List Preferences", function()
                     var span = document.createElement("span");
                     span.appendChild(document.createTextNode("Unignore"));
                     span.className = "control";
-                    span.addEventListener("click", unignoreTopicUser(userName, topicId), false);
+                    span.addEventListener("click", this.createPerTopicUnignoreUserHandler(userName, topicId), false);
 
                     dd.appendChild(document.createTextNode(userName + " ("));
                     dd.appendChild(span);
                     dd.appendChild(document.createTextNode(")"));
                     list.appendChild(dd);
-                });
+                }.bind(this));
             }
         }
     }
+};
 
-    var prefs = document.createElement("iframe");
-
-    prefs.addEventListener("load", function()
-    {
-        var form = prefs.contentDocument.forms.namedItem("preferences");
-        if (form)
-        {
-            createIgnoredUserList();
-            createTopicIgnoredUserList();
-
-            form.elements.namedItem("kill_quotes").checked = UIL.Config.getKillQuotes();
-            form.elements.namedItem("notify").checked = UIL.Config.getNotification();
-            form.elements.namedItem("kill_topics").checked = UIL.Config.getKillTopics();
-            form.elements.namedItem("close_button").addEventListener("click", function()
-            {
-                unsafeWindow.top.document.body.removeChild(prefs);
-                unsafeWindow.top.document.body.removeChild(blocker);
-            }, false);
-            form.elements.namedItem("save_button").addEventListener("click", function()
-            {
-                UIL.Config.setKillQuotes(this.form.elements.kill_quotes.checked);
-                UIL.Config.setNotification(this.form.elements.notify.checked);
-                UIL.Config.setKillTopics(this.form.elements.kill_topics.checked);
-                unsafeWindow.top.document.body.removeChild(prefs);
-                unsafeWindow.top.document.body.removeChild(blocker);
-            }, false);
-            form.elements.namedItem("ignore_user_button").addEventListener("click", addGloballyIgnoredUser, false);
-            form.elements.namedItem("topic_ignore_user_button").addEventListener("click", addPerTopicIgnoredUser, false);
-        }
-    }, false);
-
-    document.body.appendChild(prefs);
-
-    prefs.id = "uil_preferences";
-    prefs.name = "uil_preferences";
-    prefs.style.position = "fixed";
-    prefs.style.top = "1em";
-    prefs.style.left = "0px";
-    prefs.style.right = "0px";
-    prefs.style.border = "none";
-    prefs.style.height = "100%";
-    prefs.src = PREFS_HTML;
-});
+UIL.init();
