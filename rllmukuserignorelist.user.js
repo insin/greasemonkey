@@ -653,7 +653,7 @@ var UIL =
         var userName = prompt("Enter a user's name");
         if (userName)
         {
-            if (this.getGloballyIgnoredUsers().indexOf(userName) != -1)
+            if (UIL.Config.getGloballyIgnoredUsers().indexOf(userName) != -1)
             {
                 alert("You're already ignoring " + userName + " globally");
                 return;
