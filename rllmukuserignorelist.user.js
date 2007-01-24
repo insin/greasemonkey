@@ -751,7 +751,7 @@ UIL.Config =
             ignoredUsers.push(nodes.snapshotItem(i).innerHTML);
         }
 
-        this.setGloballyIgnoredUsers(newList);
+        this.setGloballyIgnoredUsers(ignoredUsers);
     },
 
     getPerTopicIgnoredUsers: function()
