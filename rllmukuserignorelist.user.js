@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2007-01-25 Added extranoise.co.uk domain.
  * 2007-01-24 "Complex" configuration data is now stored as JSON - added the
  *            JSON library to the script for this purpose.
  *            Added ignoring of specific users only in specific topics.

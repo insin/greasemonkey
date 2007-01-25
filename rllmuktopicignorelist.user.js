@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2007-01-25 Added extranoise.co.uk domain.
  * 2006-11-02 Added GUI for configuration.
  *            Removed positionInArray function, now using JS 1.6's Array.indexOf
  * 2006-04-07 Added ignoring of specified folders on search pages and a menu
