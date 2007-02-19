@@ -415,7 +415,13 @@ var UIL =
         {
             pageType = "topicListing";
         }
-        else if (window.location.href.indexOf("/index.php?act=UserCP&CODE=ignore") != -1)
+        else if (window.location.href.indexOf("/index.php?act=UserCP&CODE=ignore") != -1 ||
+                 document.evaluate(
+                     "//div[@class='formsubtitle' and text()='Manage your ignored users']",
+                     document,
+                     null,
+                     XPathResult.FIRST_ORDERED_NODE_TYPE,
+                     null).singleNodeValue != null)
         {
             pageType = "ignoredUsers";
         }
@@ -678,11 +684,14 @@ var UIL =
     registerControls: function(pageType)
     {
         var controls =
-            document.getElementById("userlinks").getElementsByTagName("p")[1];
-
-        controls.appendChild(document.createTextNode(" . "));
-        controls.appendChild(this.createLinkControl("User Ignore List",
-                                                    UIL.UI.show.bind(UIL.UI)));
+            document.getElementById("userlinks");
+        if (controls)
+        {
+            controls = controls.getElementsByTagName("p")[1];
+            controls.appendChild(document.createTextNode(" . "));
+            controls.appendChild(this.createLinkControl("User Ignore List",
+                                                        UIL.UI.show.bind(UIL.UI)));
+        }
 
         if (pageType == "topic")
         {
