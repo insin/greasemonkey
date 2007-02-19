@@ -350,8 +350,8 @@ function createLinkControl(name, handler)
 var controls =
     document.getElementById("userlinks").getElementsByTagName("p")[1];
 
-controls.appendChild(document.createTextNode(" . "));
-controls.appendChild(createLinkControl("Topic Ignore List", function()
+controls.insertBefore(document.createTextNode(" . "), controls.firstChild);
+controls.insertBefore(createLinkControl("Topic Ignore List", function()
 {
     var folderNameRegex = /-- (.+)$/;
     var folderSelect = document.forms.namedItem("jumpmenu").elements.namedItem("f");
@@ -438,4 +438,4 @@ controls.appendChild(createLinkControl("Topic Ignore List", function()
     prefs.style.border = "none";
     prefs.style.height = "100%";
     prefs.src = PREFS_HTML;
-}));
+}), controls.firstChild);
