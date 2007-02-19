@@ -688,9 +688,10 @@ var UIL =
         if (controls)
         {
             controls = controls.getElementsByTagName("p")[1];
-            controls.appendChild(document.createTextNode(" . "));
-            controls.appendChild(this.createLinkControl("User Ignore List",
-                                                        UIL.UI.show.bind(UIL.UI)));
+            controls.insertBefore(document.createTextNode(" . "), controls.firstChild);
+            controls.insertBefore(this.createLinkControl("User Ignore List",
+                                                        UIL.UI.show.bind(UIL.UI)),
+                                  controls.firstChild);
         }
 
         if (pageType == "topic")
