@@ -12,8 +12,10 @@
 
 /* Changelog
  * ---------
- * 2007-02-20 Minor style update to remove multiple scrollbars when the window
- *            is smaller than the preferences dialogue.
+ * 2007-03-05 Forum software was updated, which broke the script in certain
+ *            places.
+ *            Fixed a bug in removal of posts which quote ignored users in
+ *            post/edit/preview pages.
  * 2007-02-19 No longer using User Script Commands menu - Script controls are
  *            now integrated into pages.
  * 2007-01-25 Added extranoise.co.uk domain.
@@ -469,7 +471,7 @@ var UIL =
             var node = nodes.snapshotItem(i);
             if (ignoredUsers.indexOf(node.innerHTML) != -1)
             {
-                node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
+                node.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.style.display = "none";
                 itemsRemoved++;
             }
         }
@@ -493,7 +495,7 @@ var UIL =
                 {
                     if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
                     {
-                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
+                        var postNode = node.parentNode.parentNode.parentNode.parentNode.parentNode;
                         if (postNode.style.display != "none")
                         {
                             postNode.style.display = "none";
@@ -569,16 +571,16 @@ var UIL =
                 {
                     if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
                     {
-                        // Remove name and date info
-                        var nameNode = node.parentNode.parentNode.parentNode;
-                        nameNode.style.display = "none";
-                        // Move to next TR and remove post info
-                        var postNode = nameNode.nextSibling;
-                        while (postNode.nodeName != "TR" && postNode != null)
-                        {
-                            postNode = postNode.nextSibling;
-                        }
+                        // Remove post info
+                        var postNode = node.parentNode.parentNode.parentNode;
                         postNode.style.display = "none";
+                        // Move to previous TR and remove name and date info
+                        var nameNode = postNode.previousSibling;
+                        while (nameNode.nodeName != "TR" && nameNode != null)
+                        {
+                            nameNode = nameNode.previousSibling;
+                        }
+                        nameNode.style.display = "none";
                         itemsRemoved++;
                         break;
                     }
@@ -967,7 +969,6 @@ UIL.UI =
         prefs.style.right = "0px";
         prefs.style.border = "none";
         prefs.style.height = "100%";
-        prefs.style.overflow = "hidden";
         prefs.src = this.PREFS_HTML;
     },
 

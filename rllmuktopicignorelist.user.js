@@ -12,8 +12,7 @@
 
 /* Changelog
  * ---------
- * 2007-02-20 Minor style update to remove multiple scrollbars when the window
- *            is smaller than the preferences dialogue.
+ * 2007-03-05 Forum software was updated, which broke the script.
  * 2007-02-19 No longer using User Script Commands menu - Script controls are
  *            now integrated into pages.
  * 2007-01-25 Added extranoise.co.uk domain.
@@ -51,7 +50,7 @@ var SEARCH_PAGE = 1;
 var pageType = null;
 var topicLinkXPathQuery = null;
 var folderLinkXPathQuery = null;
-var topicIdRegex = /showtopic=([0-9]+)/;
+var topicIdRegex = /who_posted\(([0-9]+)\)/;
 var crossIcon =
     '<img src="data:image/gif;base64,R0lGODlhCAAIAKECAIyMjKqqqp%2B' +
     'fn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQFIRmcXvAYFss0SmlQ3qqAgA7">';
@@ -220,7 +219,7 @@ if (window.location.href.indexOf("searchid=") > -1)
 {
     pageType = SEARCH_PAGE;
     topicLinkXPathQuery =
-        "//div[@class='borderwrap']/table/tbody/tr/td[3]/table/tbody/tr/td[@width='100%']/a[1]";
+        "//div[@class='borderwrap']/table/tbody/tr/td[6]/a";
     folderLinkXPathQuery =
         "//div[@class='borderwrap']/table/tbody/tr/td[4]/span/a";
 }
@@ -228,7 +227,7 @@ else
 {
     pageType = FORUM_PAGE;
     topicLinkXPathQuery =
-        "//table[@class='ipbtable']/tbody/tr/td[3]/div/span/a[starts-with(@title,'This topic was started')]";
+        "//div[@class='borderwrap']/table[@class='ipbtable']/tbody/tr/td[4]/a";
 }
 
 var removedTopics = [];
@@ -269,20 +268,8 @@ for (var i = 0; i < topicLinkNodes.snapshotLength; i++)
     control.addEventListener("click", createIgnoreHandler(topicId), false);
 
     // Find the table cell which will contain the ignore control
-    var cell;
-    if (pageType === SEARCH_PAGE)
-    {
-        cell = topicLinkNode.parentNode.parentNode.parentNode.parentNode.parentNode.previousSibling;
-    }
-    else if (pageType === FORUM_PAGE)
-    {
-        cell = topicLinkNode.parentNode.parentNode.parentNode.previousSibling;
-    }
-    // Skip over any empty text nodes
-    while (cell.nodeType != 1)
-    {
-        cell = cell.previousSibling;
-    }
+    var cell = topicLinkNode.parentNode.parentNode.getElementsByTagName("td")[1];
+
     // Remove existing child nodes
     while (cell.childNodes.length > 0)
     {
@@ -439,6 +426,5 @@ controls.insertBefore(createLinkControl("Topic Ignore List", function()
     prefs.style.right = "0px";
     prefs.style.border = "none";
     prefs.style.height = "100%";
-    prefs.style.overflow = "hidden";
     prefs.src = PREFS_HTML;
 }), controls.firstChild);
