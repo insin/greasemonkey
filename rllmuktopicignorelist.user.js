@@ -13,6 +13,8 @@
 /* Changelog
  * ---------
  * 2007-03-05 Forum software was updated, which broke the script.
+ * 2007-02-20 Minor style update to remove multiple scrollbars when the window
+ *            is smaller than the preferences dialogue.
  * 2007-02-19 No longer using User Script Commands menu - Script controls are
  *            now integrated into pages.
  * 2007-01-25 Added extranoise.co.uk domain.
@@ -426,5 +428,6 @@ controls.insertBefore(createLinkControl("Topic Ignore List", function()
     prefs.style.right = "0px";
     prefs.style.border = "none";
     prefs.style.height = "100%";
+    prefs.style.overflow = "hidden";
     prefs.src = PREFS_HTML;
 }), controls.firstChild);
