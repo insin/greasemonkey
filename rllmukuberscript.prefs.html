@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+  <title>Userscript Preferences</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="Author" content="Jonathan Buchanan">
+  <meta name="Copyright" content="&copy; 2007, Jonathan Buchanan">
+  <style type="text/css">
+  body { margin:0; padding:0; font-size:12px; font-family:"Lucida Grande","Bitstream Vera Sans",Verdana,Arial,sans-serif; color:#333; width: 550px; margin: 0 auto; }
+  .module { border: 1px solid #ccc; margin-bottom: 5px; background-color: #fff; }
+  .module h2, .module caption { margin: 0; padding: 2px 5px 3px 5px; font-size: 11px; text-align: left; font-weight: bold; background: #7CA0C7 url("data:image/gif;base64,R0lGODlhEQAfAOYAALzS6bDJ44%2Bw0YGlyrvR6LTM5Yiqzn6iyIOny4CkyaG%2B242u0KK%2B27jP53ugxoiqzYaozJy62Jq413ugx4qsz5%2B82aTA3K7H4oSny5%2B82rbN5rnQ6KTA3afC3rLL5JS01KnE37bO5n%2BkyZy52HyhyK7I4bLK5LjP5rnQ55W01KnD35e21X6jyK7H4ZKy06vG4XyiyIyt0JSz1LHJ44uszpe11nyhx7rQ55e21pGx06fB3oqszn2ix5Kx0pe11aS%2F3IKlyqzG4KbC3pq31rvR6azF4LXM5Yyu0KvF4bPK45m41qfC3bvS6H2hx6zG4YKmyrPK5KzF4ZWz1Iyuz5q41oapzYCjyZKy0qrE37fN5qrD4J%2B72pCw0ZGy0oGmyo%2Bv0bTN5bXN5Zm415262Jy62YWozIWpzKrD34aozbrR6I%2Bv0rjO5rjO56fB3anE4ISmy7PL5LfO5p%2B72bbN5YapzHuhxrfP5nygx7fP56K924%2Bw0rHJ4qXA3Yurz36jyYuszyH5BAAAAAAALAAAAAARAB8AAAf%2FgACCg4SFggQETERMiIhEBGmPjAQbGzc3KCiWmZY3lRsoaw2jdicnDaeoqHhsDRohr7AhWVlxcxq4IbBgRgW%2BYb1hBUZgvsYmHlAeScjIHs8mJnBQcAEBM9bY1nvW2dgXLS0lLRcl5ePm4BcXRUEvTkhR7e8vQVFIL0VIKm5YICAqAArUgiWgljNCdCzp0KZDh4U6OugQIkTiEg4cfnCwYCGjBT4cNXLkoIABg5IoTSpYeTIPgwoZMmypAFNmBpoV5MSsMGbEiAgRfgIdQ8YnGaARJChVMoQKFaZKxYiRoETCkBorVtTwsQIHDh8%2BcGD9qjXFBxkyUpiVcvbD2hQyqT646JEjx5Uec7u4sJsjrwsBArgADvxFQGE1AvQMjhFjgWPHMY4cedx4yhEKmGnQ2EFBM4UdfSj8%2BbzjgQHTBlI%2FWK2atYEyaCCYgUDbDB0IVcxUKUMbAgIMCIL%2FfhMcOIbjv58AGeBlOfMnA6I7j55AhIjq1a9bSZBgO3YeLFgcGH9APPny4f3AsMGeRBMSJHjAaGJDfhMeJO44mLDfQR3%2BEwTYnwMOBAIAOw%3D%3D") top left repeat-x; color: #fff; border-bottom: 0; }
+
+  .form-row { overflow: hidden; padding: 8px 12px; font-size: 11px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; }
+  .form-row img, .form-row input { vertical-align: middle; }
+  .form-field { float: left; }
+  .aligned label { padding: 0 1em 3px 0; float: left; width: 10em; }
+  .checkbox-row label { padding: 0; float: none; width: auto; }
+  p.help { color: #999; font-size: 11px; }
+  .submit-row { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; border-right: 1px solid #eee; }
+
+  ul { margin: .5em 0 0 0; padding: 0 0 0 2em; line-height: 1.5em; }
+  li { margin: 0; padding: 0; }
+  ul.checkboxes { float: left; margin-left: 0; padding-left: 0; list-style-type: none; }
+  ul.checkboxes label { padding: 0; float: none; width: auto; }
+
+  span.control { text-decoration: underline; cursor: pointer; color: #00f; }
+  span.gfp { font-weight: bold; font-style: italic; color: teal; }
+  </style>
+</head>
+<body>
+
+<form name="preferences" id="preferences" class="aligned">
+  <div class="module">
+    <h2>Rllmuk Uber Script Preferences</h2>
+    <div class="form-row">
+      <label>Tidy Posts:</label>
+      <ul class="checkboxes">
+        <li><label for="tidy_despin"><input type="checkbox" name="tidy_despin" id="tidy_despin"> Tidy despin's posts</label></li>
+        <li><label for="tidy_chywuhx"><input type="checkbox" name="tidy_chywuhx" id="tidy_chywuhx"> Get rid of .:::</label></li>
+        <li><label for="tidy_giant_frying_pan"><input type="checkbox" name="tidy_giant_frying_pan" id="tidy_giant_frying_pan"> No <span class="gfp">giant_frying_pan</span></label></li>
+      </ul>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="undo_image_resizing"><input type="checkbox" name="undo_image_resizing" id="undo_image_resizing"> Undo automatic image resizing</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="restore_search_link"><input type="checkbox" name="restore_search_link" id="restore_search_link"> Put the Search link back at the top of the page</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="auto_quick_edit"><input type="checkbox" name="auto_quick_edit" id="auto_quick_edit"> Automatically use Quick Edit</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="remove_username_menus"><input type="checkbox" name="remove_username_menus" id="remove_username_menus"> Remove username menus</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="clean_post_form"><input type="checkbox" name="clean_post_form" id="clean_post_form"> Clean up the Add/Edit post form</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="fix_spoilers"><input type="checkbox" name="fix_spoilers" id="fix_spoilers"> Put spoilers back to the way they used to be</label>
+    </div>
+ </div>
+
+  <div class="module">
+    <div class="submit-row">
+      <input type="button" value="Close" name="close_button" id="close_button">
+      <input type="button" value="Save Preferences" name="save_button" id="save_button">
+    </div>
+  </div>
+</form>
+
+</body>
+</html>
