@@ -39,7 +39,7 @@ if (textnodes.snapshotLength > 0)
 
         // Grammar and punctuation
         "would of":"would have",
-        "could of":"would have",
+        "could of":"could have",
         "should of":"should have",
         "must of":"must have",
         "alot":"a lot",
