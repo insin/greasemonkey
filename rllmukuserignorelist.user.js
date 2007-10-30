@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2007-10-30 A markup change broke removal of quoted posts.
  * 2007-03-05 Forum software was updated, which broke the script in certain
  *            places.
  *            Fixed a bug in removal of posts which quote ignored users in
@@ -495,7 +496,7 @@ var UIL =
                 var node = nodes.snapshotItem(i);
                 for (var j = 0; j < ignoredUsers.length; j++)
                 {
-                    if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
+                    if (node.innerHTML.indexOf("QUOTE (" + ignoredUsers[j]) === 0)
                     {
                         var postNode = node.parentNode.parentNode.parentNode.parentNode.parentNode;
                         if (postNode.style.display != "none")
@@ -571,7 +572,7 @@ var UIL =
                 var node = nodes.snapshotItem(i);
                 for (var j = 0; j < ignoredUsers.length; j++)
                 {
-                    if (node.innerHTML.indexOf("QUOTE(" + ignoredUsers[j]) === 0)
+                    if (node.innerHTML.indexOf("QUOTE (" + ignoredUsers[j]) === 0)
                     {
                         // Remove post info
                         var postNode = node.parentNode.parentNode.parentNode;
