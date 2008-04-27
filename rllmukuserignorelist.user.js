@@ -12,6 +12,9 @@
 
 /* Changelog
  * ---------
+ * 2008-04-27 Implemented removal of posts by users with truncated usernames.
+ *            Fixed removal of posts by ignored users on reply pages.
+ * 2008-03-20 Fixed error when viewing locked topics.
  * 2007-10-30 A markup change broke removal of quoted posts.
  * 2007-03-05 Forum software was updated, which broke the script in certain
  *            places.
@@ -479,6 +482,26 @@ var UIL =
             }
         }
 
+        // Now try truncated usernames
+        var nodes =
+            document.evaluate(
+                "//div[@class='popupmenu-item']/strong",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        // Remove posts made by ignored usernames
+        for (var i = 0; i < nodes.snapshotLength; i++)
+        {
+            var node = nodes.snapshotItem(i);
+            if (ignoredUsers.indexOf(node.innerHTML) != -1)
+            {
+                node.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.style.display = "none";
+                itemsRemoved++;
+            }
+        }
+
         if (UIL.Config.getKillQuotes())
         {
             // Get a list of quote headers
@@ -515,7 +538,15 @@ var UIL =
 
     getTopicIdFromCurrentPage: function()
     {
-        return document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        var form = document.forms.namedItem("search");
+        if (form)
+        {
+            return form.elements.namedItem("topic").value;
+        }
+        else
+        {
+            return document.forms.namedItem("REPLIER").elements.namedItem("t").value;
+        }
     },
 
     postEditPreviewPageProcessor: function()
