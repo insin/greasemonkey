@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2008-09-13 Fixed preferences display issue in Firefox 3.
  * 2007-03-05 Forum software was updated, which broke the script.
  * 2007-02-20 Minor style update to remove multiple scrollbars when the window
  *            is smaller than the preferences dialogue.
@@ -428,6 +429,7 @@ controls.insertBefore(createLinkControl("Topic Ignore List", function()
     prefs.style.right = "0px";
     prefs.style.border = "none";
     prefs.style.height = "100%";
+    prefs.style.width = "100%";
     prefs.style.overflow = "hidden";
     prefs.src = PREFS_HTML;
 }), controls.firstChild);
