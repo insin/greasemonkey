@@ -2,6 +2,7 @@
 // @name           Stack Overflow Tag Manager
 // @namespace      http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description    Hides questions on the main question list with certain uninteresting tags, unless they also have some interesting tags
+// @include        http://stackoverflow.com/
 // @include        http://stackoverflow.com/questions
 // @include        http://stackoverflow.com/questions/
 // @include        http://stackoverflow.com/questions?*
@@ -10,6 +11,7 @@
 /*
 CHANGELOG
 ---------
+2008-09-24 Now works on the front page as well.
 2008-09-24 Initial version.
 */
 
@@ -35,6 +37,33 @@ var Utilities =
         {
             func.apply(context, arguments);
         };
+    },
+
+    /**
+     * Updates an object's properties with other objects' properties.
+     *
+     * @param {Object} destination the object to be updated.
+     * @param {Object} [source] all further arguments will have their properties
+     *                          copied to the <code>destination</code> object in
+     *                          the order given.
+     *
+     * @return the <code>destination</code> object.
+     * @type Object
+     */
+    extendObject: function(destination)
+    {
+        for (var i = 1, l = arguments.length; i < l; i++)
+        {
+            var source = arguments[i];
+            for (var property in source)
+            {
+                if (source.hasOwnProperty(property))
+                {
+                    destination[property] = source[property];
+                }
+            }
+        }
+        return destination;
     }
 };
 
@@ -43,7 +72,7 @@ var Utilities =
  *
  * @namespace
  */
-var TagManager =
+var TagConfig =
 {
     /**
      * Loads initial tag preferences.
@@ -179,8 +208,9 @@ var ConfigurationForm =
     /**
      * Creates the configuration form.
      */
-    init: function()
+    init: function(page)
     {
+        this.page = page;
         this.form = document.createElement("form");
         this.form.name = "tagManagerConfigurationForm";
 
@@ -254,17 +284,17 @@ var ConfigurationForm =
             alert("No commas, please!");
             return;
         }
-        else if (TagManager.ignoredTags.indexOf(tag) != -1)
+        else if (TagConfig.ignoredTags.indexOf(tag) != -1)
         {
             alert("You're already ignoring this tag.");
             this.ignoreTagInput.value = "";
             return;
         }
-        else if (TagManager.interestingTags.indexOf(tag) != -1)
+        else if (TagConfig.interestingTags.indexOf(tag) != -1)
         {
             if (confirm("This tag is currently marked as interesting - do you want to ignore it instead?"))
             {
-                TagManager.removeInterestingTag(tag);
+                TagConfig.removeInterestingTag(tag);
                 this.updateInterestingTagDisplay();
             }
             else
@@ -274,10 +304,10 @@ var ConfigurationForm =
             }
         }
 
-        TagManager.addIgnoredTag(tag);
+        TagConfig.addIgnoredTag(tag);
         this.ignoreTagInput.value = "";
         this.updateIgnoredTagDisplay();
-        QuestionsPage.updateQuestionDisplay();
+        this.page.updateQuestionDisplay();
         this.ignoreTagInput.focus();
     },
 
@@ -297,17 +327,17 @@ var ConfigurationForm =
             alert("No commas, please!");
             return;
         }
-        else if (TagManager.interestingTags.indexOf(tag) != -1)
+        else if (TagConfig.interestingTags.indexOf(tag) != -1)
         {
             alert("This tag is already marked as interesting.");
             this.interestingTagInput.value = "";
             return;
         }
-        else if (TagManager.ignoredTags.indexOf(tag) != -1)
+        else if (TagConfig.ignoredTags.indexOf(tag) != -1)
         {
             if (confirm("You're currently ignoring this tag - do you want to mark it as interesting instead?"))
             {
-                TagManager.removeIgnoredTag(tag);
+                TagConfig.removeIgnoredTag(tag);
                 this.updateIgnoredTagDisplay();
             }
             else
@@ -317,10 +347,10 @@ var ConfigurationForm =
             }
         }
 
-        TagManager.addInterestingTag(tag);
+        TagConfig.addInterestingTag(tag);
         this.interestingTagInput.value = "";
         this.updateInterestingTagDisplay();
-        QuestionsPage.updateQuestionDisplay();
+        this.page.updateQuestionDisplay();
         this.interestingTagInput.focus();
     },
 
@@ -353,7 +383,7 @@ var ConfigurationForm =
     removeIgnoredTag: function(e)
     {
         this._removeTag(e,
-                        TagManager.removeIgnoredTag,
+                        TagConfig.removeIgnoredTag,
                         this.updateIgnoredTagDisplay);
     },
 
@@ -365,29 +395,29 @@ var ConfigurationForm =
     removeInterestingTag: function(e)
     {
         this._removeTag(e,
-                        TagManager.removeInterestingTag,
+                        TagConfig.removeInterestingTag,
                         this.updateInterestingTagDisplay);
     },
 
     /**
      * Does the real work for removing tags - preventing the tag link from
-     * being followed, using TagManager to update configuration and updating
+     * being followed, using TagConfig to update configuration and updating
      * display of the appropriate tag configuration and questions.
      *
      * @param {Event} e the event being handled.
-     * @param {Function} tagManagerFunc the {@link TagManager} function to be
+     * @param {Function} tagConfigFunc the {@link TagConfig} function to be
      *                                  used to update tag configuration.
      * @param {Function updateDisplayFunc the {@link ConfigurationForm} function
      *                                    to be used to update tag configuration
      *                                    display.
      */
-    _removeTag: function(e, tagManagerFunc, updateDisplayFunc)
+    _removeTag: function(e, tagConfigFunc, updateDisplayFunc)
     {
         e.preventDefault();
         e.stopPropagation();
-        tagManagerFunc.call(TagManager, e.target.textContent);
+        tagConfigFunc.call(TagConfig, e.target.textContent);
         updateDisplayFunc.call(this);
-        QuestionsPage.updateQuestionDisplay();
+        this.page.updateQuestionDisplay();
     },
 
     /**
@@ -396,7 +426,7 @@ var ConfigurationForm =
     updateIgnoredTagDisplay: function()
     {
         this._updateTagDisplay(this.ignoredTags,
-                               TagManager.ignoredTags,
+                               TagConfig.ignoredTags,
                                "ignored",
                                this.removeIgnoredTag);
     },
@@ -407,7 +437,7 @@ var ConfigurationForm =
     updateInterestingTagDisplay: function(el, tags)
     {
         this._updateTagDisplay(this.interestingTags,
-                               TagManager.interestingTags,
+                               TagConfig.interestingTags,
                                "interesting",
                                this.removeInterestingTag);
     },
@@ -495,12 +525,13 @@ Question.prototype =
 };
 
 /**
- * Handles initialisation of processing and showing/hiding questions based on
- * configuration.
+ * Base object for objects which will handle initialisation of Tag Manager
+ * functionality on various pages.
  *
- * @namespace
+ * @constructor
  */
-var QuestionsPage =
+function TagManagerPage() {};
+TagManagerPage.prototype =
 {
     /**
      * Kicks off processing of the questions page, performing all necessary
@@ -509,17 +540,11 @@ var QuestionsPage =
      */
     init: function()
     {
-        TagManager.init();
+        TagConfig.init();
 
         this.questions = [];
 
-        var questionDivs =
-            document.evaluate(".//div[@class='question-summary']",
-                              document.getElementById("question"),
-                              null,
-                              XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                              null);
-
+        var questionDivs = this.getQuestionDivs();
         for (var i = 0, l = questionDivs.snapshotLength; i < l; i++)
         {
             this.questions.push(new Question(questionDivs.snapshotItem(i)));
@@ -534,15 +559,10 @@ var QuestionsPage =
         this.hiddenQuestionStatus.id = "hiddenQuestionStatus";
         module.appendChild(this.hiddenQuestionStatus);
 
-        ConfigurationForm.init();
+        ConfigurationForm.init(this);
         module.appendChild(ConfigurationForm.form);
 
-        var insertionTarget =
-            document.evaluate(".//div[@class='module' and position()=last()]",
-                              document.getElementById("sidebar"),
-                              null,
-                              XPathResult.FIRST_ORDERED_NODE_TYPE,
-                              null).singleNodeValue;
+        var insertionTarget = this.getModuleInsertionTarget();
         insertionTarget.parentNode.insertBefore(module, insertionTarget);
 
         this.updateQuestionDisplay();
@@ -559,7 +579,7 @@ var QuestionsPage =
         for (var i = 0, l = this.questions.length; i < l; i++)
         {
             var question = this.questions[i];
-            if (TagManager.questionShouldBeIgnored(question))
+            if (TagConfig.questionShouldBeIgnored(question))
             {
                 question.hide();
                 hiddenQuestions++;
@@ -589,4 +609,69 @@ var QuestionsPage =
     }
 };
 
-QuestionsPage.init();
+/**
+ * Handles initialisation of Tag Manager functionality on the front page.
+ *
+ * @constructor
+ * @augments TagManagerPage
+ */
+function FrontPage() { };
+FrontPage.prototype = new TagManagerPage();
+Utilities.extendObject(FrontPage.prototype,
+{
+    getQuestionDivs: function()
+    {
+        return document.evaluate(".//div[contains(@class, 'question-summary')]",
+                                 document.getElementById("mainbar"),
+                                 null,
+                                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                                 null);
+    },
+
+    getModuleInsertionTarget: function()
+    {
+        return document.evaluate(".//div[@class='module' and position()=1]",
+                                 document.getElementById("sidebar"),
+                                 null,
+                                 XPathResult.FIRST_ORDERED_NODE_TYPE,
+                                 null).singleNodeValue;
+    }
+});
+
+/**
+ * Handles initialisation of Tag Manager functionality on the questions page.
+ *
+ * @constructor
+ * @augments TagManagerPage
+ */
+function QuestionsPage() {};
+QuestionsPage.prototype = new TagManagerPage();
+Utilities.extendObject(QuestionsPage.prototype,
+{
+    getQuestionDivs: function()
+    {
+        return document.evaluate(".//div[@class='question-summary']",
+                                 document.getElementById("question"),
+                                 null,
+                                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                                 null);
+    },
+
+    getModuleInsertionTarget: function()
+    {
+        return document.evaluate(".//div[@class='module' and position()=last()]",
+                                 document.getElementById("sidebar"),
+                                 null,
+                                 XPathResult.FIRST_ORDERED_NODE_TYPE,
+                                 null).singleNodeValue;
+    }
+});
+
+if (window.location.href.indexOf("questions") != -1)
+{
+    new QuestionsPage().init();
+}
+else
+{
+    new FrontPage().init();
+}
