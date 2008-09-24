@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Overflow Tag Manager
 // @namespace      http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
-// @description    Hides questions on the main question list with certain uninteresting tags, unless they also have some interesting tags
+// @description    Hides questions on the home page and main question list which have certain uninteresting tags, unless they also have some interesting tags
 // @include        http://stackoverflow.com/
 // @include        http://stackoverflow.com/questions
 // @include        http://stackoverflow.com/questions/
@@ -11,6 +11,7 @@
 /*
 CHANGELOG
 ---------
+2008-09-24 Tidied documentation and completed missing pieces.
 2008-09-24 Now works on the front page as well.
 2008-09-24 Initial version.
 */
@@ -26,9 +27,12 @@ var Utilities =
      * Creates a function which, when executed, calls the given function with
      * the given context object as "this".
      *
-     * @param {Function} func
-     * @param context
+     * @param {Function} func the function to be executed at a later time.
+     * @param context the object which will be referenced by "this" during the
+     *                function call.
      *
+     * @return a function which will, when executed, execute <code>func</code>
+     *         with <code>context</code> as "this".
      * @type Function
      */
     bind: function(func, context)
@@ -68,7 +72,7 @@ var Utilities =
 };
 
 /**
- * Handles tag configuration and determines if tags are ignored.
+ * Handles tag configuration and determines which questions should be ignored.
  *
  * @namespace
  */
@@ -106,7 +110,7 @@ var TagConfig =
     },
 
     /**
-     * Saves tags to the setting with the given name as comma-delimited text.
+     * Saves tags to the setting with the given name, as comma-delimited text.
      *
      * @param {String} settingName the name of the setting under which tags are
      *                             to be stored.
@@ -119,6 +123,8 @@ var TagConfig =
 
     /**
      * Adds an ignored tag and saves.
+     *
+     * @param {String} tag the tag to be ignored.
      */
     addIgnoredTag: function(tag)
     {
@@ -129,6 +135,8 @@ var TagConfig =
 
     /**
      * Adds an interesting tag and saves.
+     *
+     * @param {String} tag the tag to be marked as interesting.
      */
     addInterestingTag: function(tag)
     {
@@ -139,6 +147,8 @@ var TagConfig =
 
     /**
      * Removes an ignored tag and saves.
+     *
+     * @param {String} tag the tag to be unignored.
      */
     removeIgnoredTag: function(tag)
     {
@@ -152,6 +162,8 @@ var TagConfig =
 
     /**
      * Removes an interesting tag and saves.
+     *
+     * @param {String} tag the tag to be unmarked as interesting.
      */
     removeInterestingTag: function(tag)
     {
@@ -169,7 +181,7 @@ var TagConfig =
      * <p>
      * Interesting tags trump ignored tags.
      *
-     * @param {Question} question the question to be inspected.
+     * @param {Question} question the question whose tags will be examined.
      *
      * @return <code>true</code> if the given question should be ignored,
      *         <code>false</code> otherwise.
@@ -207,6 +219,8 @@ var ConfigurationForm =
 {
     /**
      * Creates the configuration form.
+     *
+     * @param {TagManagerPage} page the page object for the current page.
      */
     init: function(page)
     {
@@ -405,11 +419,11 @@ var ConfigurationForm =
      * display of the appropriate tag configuration and questions.
      *
      * @param {Event} e the event being handled.
-     * @param {Function} tagConfigFunc the {@link TagConfig} function to be
-     *                                  used to update tag configuration.
-     * @param {Function updateDisplayFunc the {@link ConfigurationForm} function
-     *                                    to be used to update tag configuration
-     *                                    display.
+     * @param {Function} tagConfigFunc the {@link TagConfig} function to be used
+     *                                 to update tag configuration.
+     * @param {Function} updateDisplayFunc the {@link ConfigurationForm}
+     *                                    function to be used to update tag
+     *                                    configuration display.
      */
     _removeTag: function(e, tagConfigFunc, updateDisplayFunc)
     {
@@ -434,7 +448,7 @@ var ConfigurationForm =
     /**
      * Updates display of interesting tags.
      */
-    updateInterestingTagDisplay: function(el, tags)
+    updateInterestingTagDisplay: function()
     {
         this._updateTagDisplay(this.interestingTags,
                                TagConfig.interestingTags,
@@ -486,7 +500,7 @@ var ConfigurationForm =
 };
 
 /**
- * A question on the Questions page.
+ * A question in a Stack Overflow question list page.
  *
  * @param {HTMLElement} element the HTML element representing the question.
  *
@@ -513,11 +527,17 @@ function Question(element)
 
 Question.prototype =
 {
+    /**
+     * Hides the element representing the question.
+     */
     hide: function()
     {
         this.element.style.display = "none";
     },
 
+    /**
+     * Shows the element representing the question.
+     */
     show: function()
     {
         this.element.style.display = "";
@@ -534,7 +554,7 @@ function TagManagerPage() {};
 TagManagerPage.prototype =
 {
     /**
-     * Kicks off processing of the questions page, performing all necessary
+     * Kicks off processing of the current page, performing all necessary
      * setup, including initialising all other components and inserting status
      * display and configuration controls into the page.
      */
@@ -569,7 +589,38 @@ TagManagerPage.prototype =
     },
 
     /**
-     * Updates display of each tag on the page based on the current
+     * Retrieves elements representing questions on the current page.
+     * <p>
+     * This method must be implemented by objects which inherit from
+     * <code>TagManagerPage</code> or an <code>Error</code> will be thrown.
+     *
+     * @returns the result of an XPATH lookup for elements representing
+     *          questions.
+     * @type XPathResult
+     */
+    getQuestionDivs: function()
+    {
+        throw new Error("getQuestionDivs must be implemented by inheritors.");
+    },
+
+    /**
+     * Retrieves the element which the Tag Manager configuration module should
+     * be inserted before.
+     * <p>
+     * This method must be implemented by objects which inherit from
+     * <code>TagManagerPage</code> or an <code>Error</code> will be thrown.
+     *
+     * @returns the element which the Tag Manager configuration module should be
+     *          inserted before.
+     * @type HTMLElement
+     */
+    getModuleInsertionTarget: function()
+    {
+        throw new Error("getModuleInsertionTarget must be implemented by inheritors.");
+    },
+
+    /**
+     * Updates display of each question on the page based on the current
      * configuration of ignored and interesting tags.
      */
     updateQuestionDisplay: function()
@@ -594,7 +645,9 @@ TagManagerPage.prototype =
     },
 
     /**
-     * Updates details about the number of hidden questions.
+     * Updates details about the number of questions which are currently hidden.
+     *
+     * @param {Number} count the number of questions which are hidden.
      */
     updateHiddenQuestionCount: function(count)
     {
