@@ -11,6 +11,7 @@
 /*
 CHANGELOG
 ---------
+2008-09-24 Added a checkbox to toggle display of interesting questions only.
 2008-09-24 Tidied documentation and completed missing pieces.
 2008-09-24 Now works on the front page as well.
 2008-09-24 Initial version.
@@ -85,6 +86,7 @@ var TagConfig =
     {
         this.ignoredTags = this.loadTags("ignoredTags");
         this.interestingTags = this.loadTags("interestingTags");
+        this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
     },
 
     /**
@@ -176,6 +178,20 @@ var TagConfig =
     },
 
     /**
+     * Updates the <code>onlyShowInteresting</code> flag and saves.
+     *
+     * @param {Boolean} onlyShowInteresting <code>true</code if only questions
+     *                                      with interesting tags should be
+     *                                      displayed, <code>false</code>
+     *                                      otherwise.
+     */
+    updateOnlyShowInteresting: function(onlyShowInteresting)
+    {
+        this.onlyShowInteresting = onlyShowInteresting;
+        GM_setValue("onlyShowInteresting", this.onlyShowInteresting);
+    },
+
+    /**
      * Determines if a given question should be ignored, based on its tags
      * and the currently configured list of ignored and interesting tags.
      * <p>
@@ -189,22 +205,37 @@ var TagConfig =
      */
     questionShouldBeIgnored: function(question)
     {
-        var ignore = false;
+        // Default to ignoring all questions if we should only be showing those
+        // with interesting tags, otherwise default to displaying all questions.
+        var ignore = this.onlyShowInteresting;
+
         for (var i = 0, l = question.tags.length; i < l; i++)
         {
             var tag = question.tags[i];
 
-            if (!ignore && this.ignoredTags.indexOf(tag) != -1)
+            if (this.onlyShowInteresting)
             {
-                ignore = true;
+                if (this.interestingTags.indexOf(tag) != -1)
+                {
+                    ignore = false;
+                    break;
+                }
             }
-
-            if (this.interestingTags.indexOf(tag) != -1)
+            else
             {
-                ignore = false;
-                break;
+                if (!ignore && this.ignoredTags.indexOf(tag) != -1)
+                {
+                    ignore = true;
+                }
+
+                if (this.interestingTags.indexOf(tag) != -1)
+                {
+                    ignore = false;
+                    break;
+                }
             }
         }
+
         return ignore;
     }
 };
@@ -274,12 +305,24 @@ var ConfigurationForm =
         interestingTagFields.appendChild(document.createTextNode(" "));
         interestingTagFields.appendChild(interestingTagButton);
 
+        var onlyShowInterestingLabel = document.createElement("label");
+        onlyShowInterestingLabel.htmlFor = "onlyShowInteresting";
+        this.onlyShowInterestingCheckbox = document.createElement("input");
+        this.onlyShowInterestingCheckbox.type = "checkbox";
+        this.onlyShowInterestingCheckbox.checked = TagConfig.onlyShowInteresting;
+        this.onlyShowInterestingCheckbox.id = "onlyShowInteresting";
+        this.onlyShowInterestingCheckbox.addEventListener(
+            "click", Utilities.bind(this.toggleOnlyShowInteresting, this), false);
+        onlyShowInterestingLabel.appendChild(this.onlyShowInterestingCheckbox);
+        onlyShowInterestingLabel.appendChild(document.createTextNode(" Only show interesting questions"));
+
         this.form.appendChild(ignoredTagsHeader);
         this.form.appendChild(this.ignoredTags);
         this.form.appendChild(ignoreTagFields);
         this.form.appendChild(interestingTagsHeader);
         this.form.appendChild(this.interestingTags);
         this.form.appendChild(interestingTagFields);
+        this.form.appendChild(onlyShowInterestingLabel);
     },
 
     /**
@@ -431,6 +474,15 @@ var ConfigurationForm =
         e.stopPropagation();
         tagConfigFunc.call(TagConfig, e.target.textContent);
         updateDisplayFunc.call(this);
+        this.page.updateQuestionDisplay();
+    },
+
+    /**
+     * Event handler for toggling display of interesting questions only.
+     */
+    toggleOnlyShowInteresting: function()
+    {
+        TagConfig.updateOnlyShowInteresting(this.onlyShowInterestingCheckbox.checked);
         this.page.updateQuestionDisplay();
     },
 
