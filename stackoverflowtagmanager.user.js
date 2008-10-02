@@ -3,6 +3,7 @@
 // @namespace      http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
 // @description    Hides questions on the home page and main question list which have certain uninteresting tags, unless they also have some interesting tags
 // @include        http://stackoverflow.com/
+// @include        http://stackoverflow.com/?*
 // @include        http://stackoverflow.com/questions
 // @include        http://stackoverflow.com/questions/
 // @include        http://stackoverflow.com/questions?*
@@ -11,6 +12,9 @@
 /*
 CHANGELOG
 ---------
+2008-09-29 Ignored questions can now be hidden or faded.
+2008-09-29 Updated @include metadata to enable script for different front page
+           views.
 2008-09-24 Added a checkbox to toggle display of interesting questions only.
 2008-09-24 Tidied documentation and completed missing pieces.
 2008-09-24 Now works on the front page as well.
@@ -79,6 +83,9 @@ var Utilities =
  */
 var TagConfig =
 {
+    HIDE: "hide",
+    FADE: "fade",
+
     /**
      * Loads initial tag preferences.
      */
@@ -86,6 +93,7 @@ var TagConfig =
     {
         this.ignoredTags = this.loadTags("ignoredTags");
         this.interestingTags = this.loadTags("interestingTags");
+        this.ignoreAction = GM_getValue("ignoreAction", this.HIDE);
         this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
     },
 
@@ -175,6 +183,19 @@ var TagConfig =
             this.interestingTags.splice(index, 1);
             this.saveTags("interestingTags", this.interestingTags);
         }
+    },
+
+    /**
+     * Updates the <code>ignoreAction</code> setting and saves.
+     *
+     * @param {String} ignoreAction the action which should be taken for ignored
+     *                              questions - <code>TagConfig.HIDE</code> or
+     *                              <code>TagConfig.FADE</code>.
+     */
+    updateIgnoreAction: function(ignoreAction)
+    {
+        this.ignoreAction = ignoreAction;
+        GM_setValue("ignoreAction", this.ignoreAction);
     },
 
     /**
@@ -282,6 +303,35 @@ var ConfigurationForm =
         ignoreTagFields.appendChild(document.createTextNode(" "));
         ignoreTagFields.appendChild(ignoreTagButton);
 
+        var ignoreOptions = document.createElement("p");
+        var hideIgnoredLabel = document.createElement("label");
+        hideIgnoredLabel.htmlFor = "hideIgnored";
+        this.hideIgnoredRadio = document.createElement("input");
+        this.hideIgnoredRadio.type = "radio";
+        this.hideIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.HIDE);
+        this.hideIgnoredRadio.id = "hideIgnored";
+        this.hideIgnoredRadio.name = "ignoreAction";
+        this.hideIgnoredRadio.value = TagConfig.HIDE;
+        this.hideIgnoredRadio.addEventListener(
+            "click", Utilities.bind(this.updateIgnoreAction, this), false);
+        hideIgnoredLabel.appendChild(this.hideIgnoredRadio);
+        hideIgnoredLabel.appendChild(document.createTextNode(" Hide"));
+        hideIgnoredLabel.style.marginRight = "10px";
+        var fadeIgnoredLabel = document.createElement("label");
+        fadeIgnoredLabel.htmlFor = "fadeIgnored";
+        this.fadeIgnoredRadio = document.createElement("input");
+        this.fadeIgnoredRadio.type = "radio";
+        this.fadeIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.FADE);
+        this.fadeIgnoredRadio.id = "fadeIgnored";
+        this.fadeIgnoredRadio.name = "ignoreAction";
+        this.fadeIgnoredRadio.value = TagConfig.FADE;
+        this.fadeIgnoredRadio.addEventListener(
+            "click", Utilities.bind(this.updateIgnoreAction, this), false);
+        fadeIgnoredLabel.appendChild(this.fadeIgnoredRadio);
+        fadeIgnoredLabel.appendChild(document.createTextNode(" Fade"));
+        ignoreOptions.appendChild(hideIgnoredLabel);
+        ignoreOptions.appendChild(fadeIgnoredLabel);
+
         var interestingTagsHeader = document.createElement("h4");
         interestingTagsHeader.appendChild(document.createTextNode("Interesting Tags"));
 
@@ -305,6 +355,7 @@ var ConfigurationForm =
         interestingTagFields.appendChild(document.createTextNode(" "));
         interestingTagFields.appendChild(interestingTagButton);
 
+        var interestingOptions = document.createElement("p");
         var onlyShowInterestingLabel = document.createElement("label");
         onlyShowInterestingLabel.htmlFor = "onlyShowInteresting";
         this.onlyShowInterestingCheckbox = document.createElement("input");
@@ -315,14 +366,17 @@ var ConfigurationForm =
             "click", Utilities.bind(this.toggleOnlyShowInteresting, this), false);
         onlyShowInterestingLabel.appendChild(this.onlyShowInterestingCheckbox);
         onlyShowInterestingLabel.appendChild(document.createTextNode(" Only show interesting questions"));
+        interestingOptions.appendChild(onlyShowInterestingLabel);
 
         this.form.appendChild(ignoredTagsHeader);
         this.form.appendChild(this.ignoredTags);
         this.form.appendChild(ignoreTagFields);
+        this.form.appendChild(ignoreOptions);
+
         this.form.appendChild(interestingTagsHeader);
         this.form.appendChild(this.interestingTags);
         this.form.appendChild(interestingTagFields);
-        this.form.appendChild(onlyShowInterestingLabel);
+        this.form.appendChild(interestingOptions);
     },
 
     /**
@@ -478,6 +532,34 @@ var ConfigurationForm =
     },
 
     /**
+     * Event handler for updating the action taken on ignored tags.
+     */
+    updateIgnoreAction: function()
+    {
+        // First, unignore any ignored questions to undo any current ignore
+        // actions which have been applied.
+        for (var i = 0, l = this.page.questions.length; i < l; i++)
+        {
+            if (this.page.questions[i].ignored)
+            {
+                this.page.questions[i].unignore();
+            }
+        }
+
+        var ignoreAction;
+        if (this.hideIgnoredRadio.checked)
+        {
+            ignoreAction = TagConfig.HIDE;
+        }
+        else if (this.fadeIgnoredRadio.checked)
+        {
+            ignoreAction = TagConfig.FADE;
+        }
+        TagConfig.updateIgnoreAction(ignoreAction);
+        this.page.updateQuestionDisplay();
+    },
+
+    /**
      * Event handler for toggling display of interesting questions only.
      */
     toggleOnlyShowInteresting: function()
@@ -562,6 +644,7 @@ function Question(element)
 {
     this.element = element;
     this.tags = [];
+    this.ignored = false;
 
     var tagDiv = document.evaluate(".//div[@class='tags']",
                                    this.element,
@@ -580,6 +663,40 @@ function Question(element)
 Question.prototype =
 {
     /**
+     * Performs the appropriate action to ignore this question.
+     */
+    ignore: function()
+    {
+        switch(TagConfig.ignoreAction)
+        {
+            case TagConfig.HIDE:
+                this.hide();
+                break;
+            case TagConfig.FADE:
+                this.fade();
+                break;
+        }
+        this.ignored = true;
+    },
+
+    /**
+     * Performs the appropriate action to unignore this question.
+     */
+    unignore: function()
+    {
+        switch(TagConfig.ignoreAction)
+        {
+            case TagConfig.HIDE:
+                this.show();
+                break;
+            case TagConfig.FADE:
+                this.brighten();
+                break;
+        }
+        this.ignored = false;
+    },
+
+    /**
      * Hides the element representing the question.
      */
     hide: function()
@@ -593,6 +710,22 @@ Question.prototype =
     show: function()
     {
         this.element.style.display = "";
+    },
+
+    /**
+     * Fades the element representing the question.
+     */
+    fade: function()
+    {
+        this.element.style.opacity = "0.5";
+    },
+
+    /**
+     * Brightens the element representing the question.
+     */
+    brighten: function()
+    {
+        this.element.style.opacity = "1";
     }
 };
 
@@ -627,9 +760,9 @@ TagManagerPage.prototype =
         module.id = "tagManager";
         module.className = "module";
 
-        this.hiddenQuestionStatus = document.createElement("p");
-        this.hiddenQuestionStatus.id = "hiddenQuestionStatus";
-        module.appendChild(this.hiddenQuestionStatus);
+        this.ignoredQuestionStatus = document.createElement("p");
+        this.ignoredQuestionStatus.id = "ignoredQuestionStatus";
+        module.appendChild(this.ignoredQuestionStatus);
 
         ConfigurationForm.init(this);
         module.appendChild(ConfigurationForm.form);
@@ -677,38 +810,38 @@ TagManagerPage.prototype =
      */
     updateQuestionDisplay: function()
     {
-        var hiddenQuestions = 0;
+        var ignoredQuestions = 0;
 
         for (var i = 0, l = this.questions.length; i < l; i++)
         {
             var question = this.questions[i];
             if (TagConfig.questionShouldBeIgnored(question))
             {
-                question.hide();
-                hiddenQuestions++;
+                question.ignore();
+                ignoredQuestions++;
             }
-            else
+            else if (question.ignored)
             {
-                question.show();
+                question.unignore();
             }
         }
 
-        this.updateHiddenQuestionCount(hiddenQuestions);
+        this.updateIgnoredQuestionCount(ignoredQuestions);
     },
 
     /**
-     * Updates details about the number of questions which are currently hidden.
+     * Updates details about the number of questions which are currently ignored.
      *
-     * @param {Number} count the number of questions which are hidden.
+     * @param {Number} count the number of questions which are ignored.
      */
-    updateHiddenQuestionCount: function(count)
+    updateIgnoredQuestionCount: function(count)
     {
-        this.hiddenQuestionStatus.innerHTML = "";
-        this.hiddenQuestionStatus.appendChild(document.createTextNode("You're ignoring "));
-        var hiddenQuestionCount = document.createElement("strong");
-        hiddenQuestionCount.appendChild(document.createTextNode(count));
-        this.hiddenQuestionStatus.appendChild(hiddenQuestionCount);
-        this.hiddenQuestionStatus.appendChild(document.createTextNode(
+        this.ignoredQuestionStatus.innerHTML = "";
+        this.ignoredQuestionStatus.appendChild(document.createTextNode("You're ignoring "));
+        var ignoredQuestionCount = document.createElement("strong");
+        ignoredQuestionCount.appendChild(document.createTextNode(count));
+        this.ignoredQuestionStatus.appendChild(ignoredQuestionCount);
+        this.ignoredQuestionStatus.appendChild(document.createTextNode(
             " question" + (count == 1 ? "" : "s") + " based on " +
             (count == 1 ? "its" : "their") + " tags."));
     }
