@@ -12,6 +12,8 @@
 /*
 CHANGELOG
 ---------
+2008-10-03 Ignored tags are now hidden in the "Recent Tags" sidebar on the front
+           page.
 2008-09-29 Ignored questions can now be hidden or faded.
 2008-09-29 Updated @include metadata to enable script for different front page
            views.
@@ -857,6 +859,47 @@ function FrontPage() { };
 FrontPage.prototype = new TagManagerPage();
 Utilities.extendObject(FrontPage.prototype,
 {
+    updateQuestionDisplay: function()
+    {
+        TagManagerPage.prototype.updateQuestionDisplay.call(this);
+        this.updateTagCloudDisplay();
+    },
+
+    /**
+     * Updates display of tags in the "Recent Tags" sidebar based on the current
+     * configuration of ignored tags.
+     */
+    updateTagCloudDisplay: function()
+    {
+        var ignoredTagLookup = {};
+        for (var i = 0, l = TagConfig.ignoredTags.length; i < l; i++)
+        {
+            ignoredTagLookup[TagConfig.ignoredTags[i]] = true;
+        }
+
+        var recentTagsDiv = document.getElementById("recent-tags");
+        var tagLinks = document.evaluate(".//a[@rel='tag']",
+                                         recentTagsDiv,
+                                         null,
+                                         XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                                         null);
+        for (var i = 0, l = tagLinks.snapshotLength; i < l; i++)
+        {
+            var tagLink = tagLinks.snapshotItem(i);
+            var elementToHide =
+                (tagLink.parentNode == recentTagsDiv ? tagLink
+                                                     : tagLink.parentNode);
+            if (tagLink.textContent in ignoredTagLookup)
+            {
+                elementToHide.style.display = "none";
+            }
+            else
+            {
+                elementToHide.style.display = "";
+            }
+        }
+    },
+
     getQuestionDivs: function()
     {
         return document.evaluate(".//div[contains(@class, 'question-summary')]",
