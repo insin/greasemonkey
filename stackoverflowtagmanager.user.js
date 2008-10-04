@@ -12,6 +12,8 @@
 /*
 CHANGELOG
 ---------
+2008-10-04 A new module was added to the Questions page - updated positioning of
+           the Tag Manager module so it's still second in the list.
 2008-10-03 Ignored tags are now hidden in the "Recent Tags" sidebar on the front
            page.
 2008-09-29 Ignored questions can now be hidden or faded.
@@ -940,7 +942,7 @@ Utilities.extendObject(QuestionsPage.prototype,
 
     getModuleInsertionTarget: function()
     {
-        return document.evaluate(".//div[@class='module' and position()=last()]",
+        return document.evaluate(".//div[@class='module' and position()=3]",
                                  document.getElementById("sidebar"),
                                  null,
                                  XPathResult.FIRST_ORDERED_NODE_TYPE,
