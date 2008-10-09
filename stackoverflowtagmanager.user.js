@@ -7,11 +7,19 @@
 // @include        http://stackoverflow.com/questions
 // @include        http://stackoverflow.com/questions/
 // @include        http://stackoverflow.com/questions?*
+// @include        http://stackoverflow.com/unanswered
+// @include        http://stackoverflow.com/unanswered/
+// @include        http://stackoverflow.com/unanswered?*
 // ==/UserScript==
 
 /*
 CHANGELOG
 ---------
+2008-10-09 Now also displays on the new "Unanswered" page.
+2008-10-09 Interesting questions can now be highlighted.
+2008-10-09 Updated "Recent Tags" filtering to take wildcards into account.
+2008-10-09 Tags can now use "*" wildcard characters to help squash tag naming
+           variants. This will match zero or more characters.
 2008-10-04 A new module was added to the Questions page - updated positioning of
            the Tag Manager module so it's still second in the list.
 2008-10-03 Ignored tags are now hidden in the "Recent Tags" sidebar on the front
@@ -77,7 +85,26 @@ var Utilities =
             }
         }
         return destination;
-    }
+    },
+
+    /**
+     * Escapes special characters in the given text so it's safe for use in creating
+     * a new <code>RegExp</code>.
+     *
+     * @param {String} text input text.
+     *
+     * @return the input text with any special regular expression characters escaped
+     *         with backslashes.
+     * @type String
+     */
+    regExpEscape: (function()
+    {
+        var sRE = /([\^.*+?|(){}[\]\\\$])/g;
+        return function(text)
+        {
+            return text.replace(sRE, "\\$1");
+        };
+    })()
 };
 
 /**
@@ -99,6 +126,10 @@ var TagConfig =
         this.interestingTags = this.loadTags("interestingTags");
         this.ignoreAction = GM_getValue("ignoreAction", this.HIDE);
         this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
+        this.highlightInteresting = GM_getValue("highlightInteresting", false);
+        this.interestingHighlightColour = GM_getValue("interestingHighlightColour", "#ffb");
+        this._updateIgnoredTagRegExp();
+        this._updateInterestingTagRegExp();
     },
 
     /**
@@ -144,6 +175,7 @@ var TagConfig =
     {
         this.ignoredTags.push(tag);
         this.ignoredTags.sort();
+        this._updateIgnoredTagRegExp();
         this.saveTags("ignoredTags", this.ignoredTags);
     },
 
@@ -156,6 +188,7 @@ var TagConfig =
     {
         this.interestingTags.push(tag);
         this.interestingTags.sort();
+        this._updateInterestingTagRegExp();
         this.saveTags("interestingTags", this.interestingTags);
     },
 
@@ -170,6 +203,7 @@ var TagConfig =
         if (index != -1)
         {
             this.ignoredTags.splice(index, 1);
+            this._updateIgnoredTagRegExp();
             this.saveTags("ignoredTags", this.ignoredTags);
         }
     },
@@ -185,6 +219,7 @@ var TagConfig =
         if (index != -1)
         {
             this.interestingTags.splice(index, 1);
+            this._updateInterestingTagRegExp();
             this.saveTags("interestingTags", this.interestingTags);
         }
     },
@@ -217,22 +252,38 @@ var TagConfig =
     },
 
     /**
-     * Determines if a given question should be ignored, based on its tags
-     * and the currently configured list of ignored and interesting tags.
+     * Updates the <code>highlightInteresting</code> flag and saves.
+     *
+     * @param {Boolean} highlightInteresting <code>true</code if questions with
+     *                                       interesting tags should be
+     *                                       highlighted, <code>false</code>
+     *                                       otherwise.
+     */
+    updateHighlightInteresting: function(highlightInteresting)
+    {
+        this.highlightInteresting = highlightInteresting;
+        GM_setValue("highlightInteresting", this.highlightInteresting);
+    },
+
+    /**
+     * Determines if a given question is ignored or interesting based on its
+     * tags and the currently configured list of ignored and interesting tags.
      * <p>
      * Interesting tags trump ignored tags.
      *
      * @param {Question} question the question whose tags will be examined.
      *
-     * @return <code>true</code> if the given question should be ignored,
-     *         <code>false</code> otherwise.
-     * @type Boolean
+     * @return <code>Question.IGNORED</code> if the given question should be
+     *         <code>Question.INTERESTING</code> if it is interesting,
+     *         <code>Question.ORDINARY</code> otherwise.
+     * @type String
      */
-    questionShouldBeIgnored: function(question)
+    determineQuestionType: function(question)
     {
         // Default to ignoring all questions if we should only be showing those
         // with interesting tags, otherwise default to displaying all questions.
-        var ignore = this.onlyShowInteresting;
+        var type = (this.onlyShowInteresting ? Question.IGNORED
+                                             : Question.ORDINARY);
 
         for (var i = 0, l = question.tags.length; i < l; i++)
         {
@@ -240,28 +291,68 @@ var TagConfig =
 
             if (this.onlyShowInteresting)
             {
-                if (this.interestingTags.indexOf(tag) != -1)
+                if (this._interestingTagRegExp.test(tag))
                 {
-                    ignore = false;
+                    type = Question.INTERESTING;
                     break;
                 }
             }
             else
             {
-                if (!ignore && this.ignoredTags.indexOf(tag) != -1)
+                if (this._interestingTagRegExp.test(tag))
                 {
-                    ignore = true;
+                    type = Question.INTERESTING;
+                    break;
                 }
 
-                if (this.interestingTags.indexOf(tag) != -1)
+                if (this._ignoredTagRegExp.test(tag))
                 {
-                    ignore = false;
-                    break;
+                    type = Question.IGNORED;
                 }
             }
         }
 
-        return ignore;
+        return type;
+    },
+
+    /**
+     * Updates the <code>RegExp</code> which is used internally to check for
+     * ignored tags.
+     */
+    _updateIgnoredTagRegExp: function()
+    {
+        this._updateTagRegExp(this.ignoredTags, "_ignoredTagRegExp");
+    },
+
+    /**
+     * Updates the <code>RegExp</code> which is used internally to check for
+     * interesting tags.
+     */
+    _updateInterestingTagRegExp: function()
+    {
+        this._updateTagRegExp(this.interestingTags, "_interestingTagRegExp");
+    },
+
+    /**
+     * Creates a RegExp which matches any of the given tags and stores it under
+     * the given property name.
+     * <p>
+     * Tags can include "*" characters to indicate wildcard matches.
+     *
+     * @param {String[]} tags a list of tags.
+     * @param {String} property the property on this object which the newly
+     *                          created <code>RegExp</code> should be stored
+     *                          under.
+     */
+    _updateTagRegExp: function(tags, property)
+    {
+        this[property] = new RegExp(
+            "^(" +
+            tags.map(function(tag)
+            {
+                return Utilities.regExpEscape(tag);
+            }).join("|").replace(/(?:\\\*)+/g, ".*") +
+            ")$", "i");
     }
 };
 
@@ -371,6 +462,18 @@ var ConfigurationForm =
         onlyShowInterestingLabel.appendChild(this.onlyShowInterestingCheckbox);
         onlyShowInterestingLabel.appendChild(document.createTextNode(" Only show interesting questions"));
         interestingOptions.appendChild(onlyShowInterestingLabel);
+        interestingOptions.appendChild(document.createElement("br"));
+        var highlightInterestingLabel = document.createElement("label");
+        highlightInterestingLabel.htmlFor = "highlightInteresting";
+        this.highlightInterestingCheckbox = document.createElement("input");
+        this.highlightInterestingCheckbox.type = "checkbox";
+        this.highlightInterestingCheckbox.checked = TagConfig.highlightInteresting;
+        this.highlightInterestingCheckbox.id = "highlightInteresting";
+        this.highlightInterestingCheckbox.addEventListener(
+            "click", Utilities.bind(this.toggleHighlightInteresting, this), false);
+        highlightInterestingLabel.appendChild(this.highlightInterestingCheckbox);
+        highlightInterestingLabel.appendChild(document.createTextNode(" Highlight interesting questions"));
+        interestingOptions.appendChild(highlightInterestingLabel);
 
         this.form.appendChild(ignoredTagsHeader);
         this.form.appendChild(this.ignoredTags);
@@ -540,15 +643,11 @@ var ConfigurationForm =
      */
     updateIgnoreAction: function()
     {
-        // First, unignore any ignored questions to undo any current ignore
-        // actions which have been applied.
-        for (var i = 0, l = this.page.questions.length; i < l; i++)
+        // First, reset all questions to their default state
+        this.page.questions.map(function(question)
         {
-            if (this.page.questions[i].ignored)
-            {
-                this.page.questions[i].unignore();
-            }
-        }
+            question.resetDisplay();
+        });
 
         var ignoreAction;
         if (this.hideIgnoredRadio.checked)
@@ -569,6 +668,15 @@ var ConfigurationForm =
     toggleOnlyShowInteresting: function()
     {
         TagConfig.updateOnlyShowInteresting(this.onlyShowInterestingCheckbox.checked);
+        this.page.updateQuestionDisplay();
+    },
+
+    /**
+     * Event handler for toggling display of interesting questions only.
+     */
+    toggleHighlightInteresting: function()
+    {
+        TagConfig.updateHighlightInteresting(this.highlightInterestingCheckbox.checked);
         this.page.updateQuestionDisplay();
     },
 
@@ -664,13 +772,39 @@ function Question(element)
     this.tags.sort();
 }
 
+Question.ORDINARY = "ordinary";
+Question.IGNORED = "ignored";
+Question.INTERESTING = "interesting";
+
 Question.prototype =
 {
+    /**
+     * Resets the element representing the question back to its default display
+     * state.
+     */
+    resetDisplay: function()
+    {
+        if (this.ignored)
+        {
+            this.unignore();
+        }
+
+        if (this.highlighted)
+        {
+            this.unhighlight();
+        }
+    },
+
     /**
      * Performs the appropriate action to ignore this question.
      */
     ignore: function()
     {
+        if (this.highlighted)
+        {
+            this.unhighlight();
+        }
+
         switch(TagConfig.ignoreAction)
         {
             case TagConfig.HIDE:
@@ -730,6 +864,29 @@ Question.prototype =
     brighten: function()
     {
         this.element.style.opacity = "1";
+    },
+
+    /**
+     * Highlights the element representing the question.
+     */
+    highlight: function()
+    {
+        if (this.ignored)
+        {
+            this.unignore();
+        }
+
+        this.element.style.backgroundColor = TagConfig.interestingHighlightColour;
+        this.highlighted = true;
+    },
+
+    /**
+     * Unhighlights the element representing the question.
+     */
+    unhighlight: function()
+    {
+        this.element.style.backgroundColor = "";
+        this.highlighted = false;
     }
 };
 
@@ -819,14 +976,20 @@ TagManagerPage.prototype =
         for (var i = 0, l = this.questions.length; i < l; i++)
         {
             var question = this.questions[i];
-            if (TagConfig.questionShouldBeIgnored(question))
+            var type = TagConfig.determineQuestionType(question);
+            if (type == Question.IGNORED)
             {
                 question.ignore();
                 ignoredQuestions++;
             }
-            else if (question.ignored)
+            else if (TagConfig.highlightInteresting &&
+                     type == Question.INTERESTING)
             {
-                question.unignore();
+                question.highlight();
+            }
+            else
+            {
+                question.resetDisplay();
             }
         }
 
@@ -873,12 +1036,6 @@ Utilities.extendObject(FrontPage.prototype,
      */
     updateTagCloudDisplay: function()
     {
-        var ignoredTagLookup = {};
-        for (var i = 0, l = TagConfig.ignoredTags.length; i < l; i++)
-        {
-            ignoredTagLookup[TagConfig.ignoredTags[i]] = true;
-        }
-
         var recentTagsDiv = document.getElementById("recent-tags");
         var tagLinks = document.evaluate(".//a[@rel='tag']",
                                          recentTagsDiv,
@@ -891,7 +1048,7 @@ Utilities.extendObject(FrontPage.prototype,
             var elementToHide =
                 (tagLink.parentNode == recentTagsDiv ? tagLink
                                                      : tagLink.parentNode);
-            if (tagLink.textContent in ignoredTagLookup)
+            if (TagConfig._ignoredTagRegExp.test(tagLink.textContent))
             {
                 elementToHide.style.display = "none";
             }
@@ -950,7 +1107,8 @@ Utilities.extendObject(QuestionsPage.prototype,
     }
 });
 
-if (window.location.href.indexOf("questions") != -1)
+if (window.location.href.indexOf("questions") != -1 ||
+    window.location.href.indexOf("unanswered") != -1)
 {
     new QuestionsPage().init();
 }
