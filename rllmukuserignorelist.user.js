@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2008-10-18 Fixed preferences display issue in Firefox 3.
  * 2008-04-27 Implemented removal of posts by users with truncated usernames.
  *            Fixed removal of posts by ignored users on reply pages.
  * 2008-03-20 Fixed error when viewing locked topics.
@@ -1003,6 +1004,7 @@ UIL.UI =
         prefs.style.right = "0px";
         prefs.style.border = "none";
         prefs.style.height = "100%";
+        prefs.style.width = "100%";
         prefs.style.overflow = "hidden";
         prefs.src = this.PREFS_HTML;
     },
