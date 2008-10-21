@@ -10,11 +10,16 @@
 // @include        http://stackoverflow.com/unanswered
 // @include        http://stackoverflow.com/unanswered/
 // @include        http://stackoverflow.com/unanswered?*
+// @include        http://stackoverflow.com/unanswered/tagged
+// @include        http://stackoverflow.com/unanswered/tagged/
+// @include        http://stackoverflow.com/unanswered/tagged?*
 // ==/UserScript==
 
 /*
 CHANGELOG
 ---------
+2008-10-21 "Unanswered" view links also added "tagged" to the url even when not
+           filtering by tag - updated @includes accordingly.
 2008-10-09 Now also displays on the new "Unanswered" page.
 2008-10-09 Interesting questions can now be highlighted.
 2008-10-09 Updated "Recent Tags" filtering to take wildcards into account.
