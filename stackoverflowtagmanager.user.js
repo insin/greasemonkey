@@ -18,6 +18,7 @@
 /*
 CHANGELOG
 ---------
+2008-10-22 Fixed ugly grey line on the stats box when highlighting questions.
 2008-10-22 Updated generated element ids to avoid conflicts with Stack
            Overflow's newly implemented tag management. This allows you to
            continue to use this script if you want to continue to completely
@@ -114,7 +115,36 @@ var Utilities =
         {
             return text.replace(sRE, "\\$1");
         };
-    })()
+    })(),
+
+    // The following functions are from http://dean.edwards.name/IE7/caveats/
+    // by Dean Edwards 2004.10.24
+    addClass: function(element, className)
+    {
+        if (!this.hasClass(element, className))
+        {
+            if (element.className)
+            {
+                element.className += " " + className;
+            }
+            else
+            {
+                element.className = className;
+            }
+        }
+    },
+
+    removeClass: function(element, className)
+    {
+        var regexp = new RegExp("(^|\\s)" + className + "(\\s|$)");
+        element.className = element.className.replace(regexp, "$2");
+    },
+
+    hasClass: function(element, className)
+    {
+        var regexp = new RegExp("(^|\\s)" + className + "(\\s|$)");
+        return regexp.test(element.className);
+    }
 };
 
 /**
@@ -137,7 +167,6 @@ var TagConfig =
         this.ignoreAction = GM_getValue("ignoreAction", this.HIDE);
         this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
         this.highlightInteresting = GM_getValue("highlightInteresting", false);
-        this.interestingHighlightColour = GM_getValue("interestingHighlightColour", "#ffb");
         this._updateIgnoredTagRegExp();
         this._updateInterestingTagRegExp();
     },
@@ -886,7 +915,7 @@ Question.prototype =
             this.unignore();
         }
 
-        this.element.style.backgroundColor = TagConfig.interestingHighlightColour;
+        Utilities.addClass(this.element, "sotm-interesting");
         this.highlighted = true;
     },
 
@@ -895,7 +924,7 @@ Question.prototype =
      */
     unhighlight: function()
     {
-        this.element.style.backgroundColor = "";
+        Utilities.removeClass(this.element, "sotm-interesting");
         this.highlighted = false;
     }
 };
@@ -1117,9 +1146,12 @@ Utilities.extendObject(QuestionsPage.prototype,
     }
 });
 
+GM_addStyle('.sotm-interesting { background-color: #ffb !important; }');
+
 if (window.location.href.indexOf("questions") != -1 ||
     window.location.href.indexOf("unanswered") != -1)
 {
+    GM_addStyle('.sotm-interesting .stats { background-image: url("data:image/gif,GIF89a%07%00%C8%00%80%01%00%FF%FF%BB%FF%FF%FF!%F9%04%01%00%00%01%00%2C%00%00%00%00%07%00%C8%00%00%029%84%8F%A9%CB%ED%0F%A3%0C*Pd%AF%C9%9A_O%81%22%E0m%D9q%A2%DA%26%B5%EE%0B%C7%F2L%D7%F6%8D%E7%FA%CE%F7%FE%0F%0C%0A%87%C4%A2%F1%88L*%97%CC%A6%F3%09%C5%15%00%00%3B") !important; }');
     new QuestionsPage().init();
 }
 else
