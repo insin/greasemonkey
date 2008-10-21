@@ -18,6 +18,11 @@
 /*
 CHANGELOG
 ---------
+2008-10-22 Updated generated element ids to avoid conflicts with Stack
+           Overflow's newly implemented tag management. This allows you to
+           continue to use this script if you want to continue to completely
+           hide questions with ignored tags, by clearing tags from SO's built
+           in tag manager.
 2008-10-21 "Unanswered" view links also added "tagged" to the url even when not
            filtering by tag - updated @includes accordingly.
 2008-10-09 Now also displays on the new "Unanswered" page.
@@ -384,7 +389,7 @@ var ConfigurationForm =
         ignoredTagsHeader.appendChild(document.createTextNode("Ignored Tags"));
 
         this.ignoredTags = document.createElement("div");
-        this.ignoredTags.id = "ignoredTags";
+        this.ignoredTags.id = "ignoredTagsGM";
         this.ignoredTags.className = "tags";
         this.updateIgnoredTagDisplay();
 
@@ -409,7 +414,7 @@ var ConfigurationForm =
         this.hideIgnoredRadio = document.createElement("input");
         this.hideIgnoredRadio.type = "radio";
         this.hideIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.HIDE);
-        this.hideIgnoredRadio.id = "hideIgnored";
+        this.hideIgnoredRadio.id = "hideIgnoredGM";
         this.hideIgnoredRadio.name = "ignoreAction";
         this.hideIgnoredRadio.value = TagConfig.HIDE;
         this.hideIgnoredRadio.addEventListener(
@@ -422,7 +427,7 @@ var ConfigurationForm =
         this.fadeIgnoredRadio = document.createElement("input");
         this.fadeIgnoredRadio.type = "radio";
         this.fadeIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.FADE);
-        this.fadeIgnoredRadio.id = "fadeIgnored";
+        this.fadeIgnoredRadio.id = "fadeIgnoredGM";
         this.fadeIgnoredRadio.name = "ignoreAction";
         this.fadeIgnoredRadio.value = TagConfig.FADE;
         this.fadeIgnoredRadio.addEventListener(
@@ -436,14 +441,14 @@ var ConfigurationForm =
         interestingTagsHeader.appendChild(document.createTextNode("Interesting Tags"));
 
         this.interestingTags = document.createElement("div");
-        this.interestingTags.id = "interestingTags";
+        this.interestingTags.id = "interestingTagsGM";
         this.interestingTags.className = "tags";
         this.updateInterestingTagDisplay();
 
         var interestingTagFields = document.createElement("p");
         this.interestingTagInput = document.createElement("input");
         this.interestingTagInput.type = "text";
-        this.interestingTagInput.name = "interestingTag";
+        this.interestingTagInput.name = "interestingTagGM";
         this.interestingTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addInterestingTag), false);
         var interestingTagButton = document.createElement("input");
@@ -461,7 +466,7 @@ var ConfigurationForm =
         this.onlyShowInterestingCheckbox = document.createElement("input");
         this.onlyShowInterestingCheckbox.type = "checkbox";
         this.onlyShowInterestingCheckbox.checked = TagConfig.onlyShowInteresting;
-        this.onlyShowInterestingCheckbox.id = "onlyShowInteresting";
+        this.onlyShowInterestingCheckbox.id = "onlyShowInterestingGM";
         this.onlyShowInterestingCheckbox.addEventListener(
             "click", Utilities.bind(this.toggleOnlyShowInteresting, this), false);
         onlyShowInterestingLabel.appendChild(this.onlyShowInterestingCheckbox);
@@ -473,7 +478,7 @@ var ConfigurationForm =
         this.highlightInterestingCheckbox = document.createElement("input");
         this.highlightInterestingCheckbox.type = "checkbox";
         this.highlightInterestingCheckbox.checked = TagConfig.highlightInteresting;
-        this.highlightInterestingCheckbox.id = "highlightInteresting";
+        this.highlightInterestingCheckbox.id = "highlightInterestingGM";
         this.highlightInterestingCheckbox.addEventListener(
             "click", Utilities.bind(this.toggleHighlightInteresting, this), false);
         highlightInterestingLabel.appendChild(this.highlightInterestingCheckbox);
@@ -923,11 +928,11 @@ TagManagerPage.prototype =
 
         // Create module in sidebar
         var module = document.createElement("div");
-        module.id = "tagManager";
+        module.id = "tagManagerGM";
         module.className = "module";
 
         this.ignoredQuestionStatus = document.createElement("p");
-        this.ignoredQuestionStatus.id = "ignoredQuestionStatus";
+        this.ignoredQuestionStatus.id = "ignoredQuestionStatusGM";
         module.appendChild(this.ignoredQuestionStatus);
 
         ConfigurationForm.init(this);
