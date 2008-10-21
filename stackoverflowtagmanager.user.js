@@ -439,7 +439,7 @@ var ConfigurationForm =
 
         var ignoreOptions = document.createElement("p");
         var hideIgnoredLabel = document.createElement("label");
-        hideIgnoredLabel.htmlFor = "hideIgnored";
+        hideIgnoredLabel.htmlFor = "hideIgnoredGM";
         this.hideIgnoredRadio = document.createElement("input");
         this.hideIgnoredRadio.type = "radio";
         this.hideIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.HIDE);
@@ -452,7 +452,7 @@ var ConfigurationForm =
         hideIgnoredLabel.appendChild(document.createTextNode(" Hide"));
         hideIgnoredLabel.style.marginRight = "10px";
         var fadeIgnoredLabel = document.createElement("label");
-        fadeIgnoredLabel.htmlFor = "fadeIgnored";
+        fadeIgnoredLabel.htmlFor = "fadeIgnoredGM";
         this.fadeIgnoredRadio = document.createElement("input");
         this.fadeIgnoredRadio.type = "radio";
         this.fadeIgnoredRadio.checked = (TagConfig.ignoreAction == TagConfig.FADE);
@@ -491,7 +491,7 @@ var ConfigurationForm =
 
         var interestingOptions = document.createElement("p");
         var onlyShowInterestingLabel = document.createElement("label");
-        onlyShowInterestingLabel.htmlFor = "onlyShowInteresting";
+        onlyShowInterestingLabel.htmlFor = "onlyShowInterestingGM";
         this.onlyShowInterestingCheckbox = document.createElement("input");
         this.onlyShowInterestingCheckbox.type = "checkbox";
         this.onlyShowInterestingCheckbox.checked = TagConfig.onlyShowInteresting;
@@ -503,7 +503,7 @@ var ConfigurationForm =
         interestingOptions.appendChild(onlyShowInterestingLabel);
         interestingOptions.appendChild(document.createElement("br"));
         var highlightInterestingLabel = document.createElement("label");
-        highlightInterestingLabel.htmlFor = "highlightInteresting";
+        highlightInterestingLabel.htmlFor = "highlightInterestingGM";
         this.highlightInterestingCheckbox = document.createElement("input");
         this.highlightInterestingCheckbox.type = "checkbox";
         this.highlightInterestingCheckbox.checked = TagConfig.highlightInteresting;
