@@ -12,6 +12,7 @@
 
 /* Changelog
  * ---------
+ * 2009-07-14 Fixed error saving ignored folders in latest version.
  * 2008-09-13 Fixed preferences display issue in Firefox 3.
  * 2007-03-05 Forum software was updated, which broke the script.
  * 2007-02-20 Minor style update to remove multiple scrollbars when the window
@@ -399,7 +400,7 @@ controls.insertBefore(createLinkControl("Topic Ignore List", function()
             form.elements.namedItem("save_button").addEventListener("click", function()
             {
                 var ignoredFolders = [];
-                var select = this.form.elements.ignored_folders;
+                var select = this.form.elements.namedItem("ignored_folders");
                 for (var i = 0; i < select.options.length; i++)
                 {
                     ignoredFolders.push(select.options[i].text);
