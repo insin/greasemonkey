@@ -18,6 +18,13 @@
 /*
 CHANGELOG
 ---------
+2010-03-12 Fixed display on Questions and Unanswered pages; removed CSS fix
+           which is no longer required; wildcard character is now stripped from
+           tag links.
+2009-03-12 Modifications to tag container class broke retrieval of tags for
+           questions.
+2008-10-22 New ads broke insertion of the configuration module on question list
+           pages.
 2008-10-22 Fixed ugly grey line on the stats box when highlighting questions.
 2008-10-22 Updated generated element ids to avoid conflicts with Stack
            Overflow's newly implemented tag management. This allows you to
@@ -167,6 +174,7 @@ var TagConfig =
         this.ignoreAction = GM_getValue("ignoreAction", this.HIDE);
         this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
         this.highlightInteresting = GM_getValue("highlightInteresting", false);
+        this.hideBuiltInTagManager = GM_getValue("hideBuiltInTagManager", false);
         this._updateIgnoredTagRegExp();
         this._updateInterestingTagRegExp();
     },
@@ -770,7 +778,7 @@ var ConfigurationForm =
             var tag = tags[i];
             var tagLink = document.createElement("a");
             tagLink.className = "post-tag";
-            tagLink.href = "/questions/tagged/" + encodeURIComponent(tag);
+            tagLink.href = "/questions/tagged/" + encodeURIComponent(tag.replace(/\*/g, ""));
             tagLink.title = "delete " + type + " tag '" + tag + "'";
             tagLink.appendChild(document.createTextNode(tag));
             tagLink.addEventListener(
@@ -797,16 +805,14 @@ function Question(element)
     this.tags = [];
     this.ignored = false;
 
-    var tagDiv = document.evaluate(".//div[@class='tags']",
-                                   this.element,
-                                   null,
-                                   XPathResult.FIRST_ORDERED_NODE_TYPE,
-                                   null).singleNodeValue;
-
-    var tagLinks = tagDiv.getElementsByTagName("a");
-    for (var i = 0, l = tagLinks.length; i < l; i++)
+    var tagLinks = document.evaluate(".//a[@rel='tag']",
+                                     this.element,
+                                     null,
+                                     XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                                     null);
+    for (var i = 0, l = tagLinks.snapshotLength; i < l; i++)
     {
-        this.tags.push(tagLinks[i].textContent);
+        this.tags.push(tagLinks.snapshotItem(i).textContent);
     }
     this.tags.sort();
 }
@@ -947,6 +953,11 @@ TagManagerPage.prototype =
     {
         TagConfig.init();
 
+        if (TagConfig.hideBuiltInTagManager)
+        {
+            document.getElementById("ignoredTags").parentNode.style.display = "none";
+        }
+
         this.questions = [];
 
         var questionDivs = this.getQuestionDivs();
@@ -967,9 +978,7 @@ TagManagerPage.prototype =
         ConfigurationForm.init(this);
         module.appendChild(ConfigurationForm.form);
 
-        var insertionTarget = this.getModuleInsertionTarget();
-        insertionTarget.parentNode.insertBefore(module, insertionTarget);
-
+        this.insertModule(module);
         this.updateQuestionDisplay();
     },
 
@@ -989,19 +998,16 @@ TagManagerPage.prototype =
     },
 
     /**
-     * Retrieves the element which the Tag Manager configuration module should
-     * be inserted before.
+     * Inserts the Tag Manager configuration module into the page.
      * <p>
      * This method must be implemented by objects which inherit from
      * <code>TagManagerPage</code> or an <code>Error</code> will be thrown.
      *
-     * @returns the element which the Tag Manager configuration module should be
-     *          inserted before.
-     * @type HTMLElement
+     * @param HTMLElement the Tag Manager configuration module.
      */
-    getModuleInsertionTarget: function()
+    insertModule: function(module)
     {
-        throw new Error("getModuleInsertionTarget must be implemented by inheritors.");
+        throw new Error("insertModule must be implemented by inheritors.");
     },
 
     /**
@@ -1059,7 +1065,7 @@ TagManagerPage.prototype =
  * @constructor
  * @augments TagManagerPage
  */
-function FrontPage() { };
+function FrontPage() {};
 FrontPage.prototype = new TagManagerPage();
 Utilities.extendObject(FrontPage.prototype,
 {
@@ -1107,13 +1113,15 @@ Utilities.extendObject(FrontPage.prototype,
                                  null);
     },
 
-    getModuleInsertionTarget: function()
+    insertModule: function(module)
     {
-        return document.evaluate(".//div[@class='module' and position()=1]",
-                                 document.getElementById("sidebar"),
-                                 null,
-                                 XPathResult.FIRST_ORDERED_NODE_TYPE,
-                                 null).singleNodeValue;
+        var insertionTarget =
+            document.evaluate(".//div[@class='module']",
+                              document.getElementById("sidebar"),
+                              null,
+                              XPathResult.FIRST_ORDERED_NODE_TYPE,
+                              null).singleNodeValue;
+        insertionTarget.parentNode.insertBefore(module, insertionTarget);
     }
 });
 
@@ -1130,19 +1138,21 @@ Utilities.extendObject(QuestionsPage.prototype,
     getQuestionDivs: function()
     {
         return document.evaluate(".//div[@class='question-summary']",
-                                 document.getElementById("question"),
+                                 document.getElementById("questions"),
                                  null,
                                  XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
                                  null);
     },
 
-    getModuleInsertionTarget: function()
+    insertModule: function(module)
     {
-        return document.evaluate(".//div[@class='module' and position()=3]",
-                                 document.getElementById("sidebar"),
-                                 null,
-                                 XPathResult.FIRST_ORDERED_NODE_TYPE,
-                                 null).singleNodeValue;
+        var insertionTarget =
+            document.evaluate(".//div[@class='module']",
+                              document.getElementById("sidebar"),
+                              null,
+                              XPathResult.FIRST_ORDERED_NODE_TYPE,
+                              null).singleNodeValue.nextSibling;
+       insertionTarget.parentNode.insertBefore(module, insertionTarget);
     }
 });
 
@@ -1151,7 +1161,6 @@ GM_addStyle('.sotm-interesting { background-color: #ffb !important; }');
 if (window.location.href.indexOf("questions") != -1 ||
     window.location.href.indexOf("unanswered") != -1)
 {
-    GM_addStyle('.sotm-interesting .stats { background-image: url("data:image/gif,GIF89a%07%00%C8%00%80%01%00%FF%FF%BB%FF%FF%FF!%F9%04%01%00%00%01%00%2C%00%00%00%00%07%00%C8%00%00%029%84%8F%A9%CB%ED%0F%A3%0C*Pd%AF%C9%9A_O%81%22%E0m%D9q%A2%DA%26%B5%EE%0B%C7%F2L%D7%F6%8D%E7%FA%CE%F7%FE%0F%0C%0A%87%C4%A2%F1%88L*%97%CC%A6%F3%09%C5%15%00%00%3B") !important; }');
     new QuestionsPage().init();
 }
 else
