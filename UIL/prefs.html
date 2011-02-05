@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+  <title>Userscript Preferences</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="Author" content="Jonathan Buchanan">
+  <meta name="Copyright" content="&copy; 2006, Jonathan Buchanan">
+  <script type="text/javascript" src="UIL.lib.js"></script>
+  <script type="text/javascript">
+  window.addEventListener("load", UIL.UI.preferenceDocumentLoadHandler.bind(UIL.UI), false);
+  </script>
+  <style type="text/css">
+  html { background-color: transparent }
+  body { margin:0; padding:0; background-color: transparent; color: #1C2837; font: 13px arial,verdana,tahoma,sans-serif; width: 720px; margin: 0 auto; }
+  .module { margin-bottom: 5px; }
+  .module h2, .module caption {
+    -moz-border-radius:5px 5px 0 0;
+    font-size:14px;
+    font-weight:normal;
+    margin:0 !important;
+    overflow:hidden;
+    padding:8px !important;
+    background:url("http://www.rllmukforum.com/public/style_images/master/gradient_bg.png") repeat-x scroll left 50% #1D3652;
+    color:#FFFFFF;
+  }
+
+  .form-row { overflow: hidden; padding: 8px 12px; font-size: 11px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; background-color: #fff; }
+  .form-row img, .form-row input { vertical-align: middle; }
+  .form-field { float: left; }
+  .aligned label { padding: 0 1em 3px 0; float: left; width: 10em; }
+  .checkbox-row label { padding: 0; float: none; width: auto; }
+  p.help { color: #999; font-size: 11px; }
+  .submit-row { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; border-right: 1px solid #eee; background-color: #fff; }
+
+  ul { margin: .5em 0 0 0; padding: 0 0 0 2em; line-height: 1.5em; }
+  li { margin: 0; padding: 0; }
+
+  span.control { text-decoration: underline; cursor: pointer; color: #00f; }
+  </style>
+</head>
+<body>
+
+<form name="preferences" id="preferences" class="aligned">
+  <div class="module">
+    <h2>User Ignore List Preferences</h2>
+    <div class="form-row">
+      <label>Globally Ignored Users:</label>
+      <div class="form-field">
+        <input type="text" name="ignore_user"> <input type="button" value="Add" id="ignore_user_button" name="ignore_user_button">
+        <ul id="ignored_users">
+        </ul>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Per-Topic Ignored Users:</label>
+      <div class="form-field">
+        <input type="text" name="topic_ignore_user"> in <input type="text" name="topic_ignore"> <input type="button" value="Add" id="topic_ignore_user_button" name="topic_ignore_user_button">
+        <p class="help">Use topic ids for the "in" field, e.g. Steve in 123456</p>
+        <dl id="topic_ignored_users">
+        </dl>
+      </div>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="kill_quotes"><input type="checkbox" name="kill_quotes" id="kill_quotes"> Remove posts which quote ignored users</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="notify"><input type="checkbox" name="notify" id="notify"> Display notification when posts or topics are removed</label>
+    </div>
+    <div class="form-row checkbox-row">
+      <label for="kill_topics"><input type="checkbox" name="kill_topics" id="kill_topics"> Remove topics created by globally ignored users</label>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="submit-row">
+      <input type="button" value="Close" name="close_button" id="close_button">
+      <input type="button" value="Save Preferences" name="save_button" id="save_button">
+    </div>
+  </div>
+</form>
+
+</body>
+</html>

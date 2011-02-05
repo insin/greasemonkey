@@ -4,10 +4,6 @@
 // @description Integrates small forum tweaking scripts into one uber-script.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
-// @include     http://www.rpsoft.co.uk/*
-// @include     http://rpsoft.co.uk/*
-// @include     http://www.extranoise.co.uk/*
-// @include     http://extranoise.co.uk/*
 // ==/UserScript==
 
 /* Changelog

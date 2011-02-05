@@ -1,0 +1,24 @@
+{
+  "name": "Rllmuk Topic Ignore List",
+  "version": "1.0",
+  "description": "Moves selected topics or topics in certain folders to an unobtrusive Ignored Topics section at the foot of topic listing pages.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background_page": "background.html",
+  "page_action": {
+    "default_icon": "table_row_delete.png",
+    "default_title": "Topic Ignore List",
+    "default_popup": "prefs.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://rllmukforum.com/*", "http://www.rllmukforum.com/*"],
+      "js": ["TIL.lib.js", "TIL.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["tabs"]
+}

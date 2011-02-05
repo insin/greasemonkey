@@ -1,0 +1,24 @@
+{
+  "name": "Rllmuk User Ignore List",
+  "version": "2.0.0",
+  "description": "Removes all traces of the users on your ignore list, optionally removing posts which quote them and any topics they create.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background_page": "background.html",
+  "page_action": {
+    "default_icon": "user_delete.png",
+    "default_title": "User Ignore List",
+    "default_popup": "prefs.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://rllmukforum.com/*", "http://www.rllmukforum.com/*"],
+      "js": ["UIL.lib.js", "UIL.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["tabs"]
+}

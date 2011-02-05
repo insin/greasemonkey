@@ -1,0 +1,30 @@
+<html>
+  <script>
+chrome.extension.onRequest.addListener(function(request, sender, sendResponse)
+{
+    if (request.type == "getprefs")
+    {
+        sendResponse({
+            globallyIgnoredUsers: localStorage.globallyIgnoredUsers,
+            perTopicIgnoredUsers: localStorage.perTopicIgnoredUsers,
+            notification: localStorage.notification,
+            killQuotes: localStorage.killQuotes,
+            killTopics: localStorage.killTopics
+        });
+    }
+    else if (request.type == "setpref")
+    {
+        localStorage.setItem(request.name, request.value);
+    }
+});
+
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab)
+{
+    if (tab.url.indexOf("http://rllmukforum.com") == 0 ||
+        tab.url.indexOf("http://www.rllmukforum.com") == 0)
+    {
+        chrome.pageAction.show(tabId);
+    }
+});
+  </script>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+  <title>Userscript Preferences</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="Author" content="Jonathan Buchanan">
+  <meta name="Copyright" content="&copy; 2006, Jonathan Buchanan">
+  <style type="text/css">
+  body { margin:0; padding:0; font-size:12px; font-family:"Lucida Grande","Bitstream Vera Sans",Verdana,Arial,sans-serif; color:#333; width: 720px; margin: 0 auto; }
+  .module { background-color: #fff; }
+  .module h2, .module caption { margin: 0; padding: 2px 5px 3px 5px; font-size: 11px; text-align: left; font-weight: bold; background: #7CA0C7 url("data:image/gif;base64,R0lGODlhEQAfAOYAALzS6bDJ44%2Bw0YGlyrvR6LTM5Yiqzn6iyIOny4CkyaG%2B242u0KK%2B27jP53ugxoiqzYaozJy62Jq413ugx4qsz5%2B82aTA3K7H4oSny5%2B82rbN5rnQ6KTA3afC3rLL5JS01KnE37bO5n%2BkyZy52HyhyK7I4bLK5LjP5rnQ55W01KnD35e21X6jyK7H4ZKy06vG4XyiyIyt0JSz1LHJ44uszpe11nyhx7rQ55e21pGx06fB3oqszn2ix5Kx0pe11aS%2F3IKlyqzG4KbC3pq31rvR6azF4LXM5Yyu0KvF4bPK45m41qfC3bvS6H2hx6zG4YKmyrPK5KzF4ZWz1Iyuz5q41oapzYCjyZKy0qrE37fN5qrD4J%2B72pCw0ZGy0oGmyo%2Bv0bTN5bXN5Zm415262Jy62YWozIWpzKrD34aozbrR6I%2Bv0rjO5rjO56fB3anE4ISmy7PL5LfO5p%2B72bbN5YapzHuhxrfP5nygx7fP56K924%2Bw0rHJ4qXA3Yurz36jyYuszyH5BAAAAAAALAAAAAARAB8AAAf%2FgACCg4SFggQETERMiIhEBGmPjAQbGzc3KCiWmZY3lRsoaw2jdicnDaeoqHhsDRohr7AhWVlxcxq4IbBgRgW%2BYb1hBUZgvsYmHlAeScjIHs8mJnBQcAEBM9bY1nvW2dgXLS0lLRcl5ePm4BcXRUEvTkhR7e8vQVFIL0VIKm5YICAqAArUgiWgljNCdCzp0KZDh4U6OugQIkTiEg4cfnCwYCGjBT4cNXLkoIABg5IoTSpYeTIPgwoZMmypAFNmBpoV5MSsMGbEiAgRfgIdQ8YnGaARJChVMoQKFaZKxYiRoETCkBorVtTwsQIHDh8%2BcGD9qjXFBxkyUpiVcvbD2hQyqT646JEjx5Uec7u4sJsjrwsBArgADvxFQGE1AvQMjhFjgWPHMY4cedx4yhEKmGnQ2EFBM4UdfSj8%2BbzjgQHTBlI%2FWK2atYEyaCCYgUDbDB0IVcxUKUMbAgIMCIL%2FfhMcOIbjv58AGeBlOfMnA6I7j55AhIjq1a9bSZBgO3YeLFgcGH9APPny4f3AsMGeRBMSJHjAaGJDfhMeJO44mLDfQR3%2BEwTYnwMOBAIAOw%3D%3D") top left repeat-x; color: #fff; border-bottom: 0; }
+
+  .form-row { overflow: hidden; padding: 8px 12px; font-size: 11px; }
+  .form-row img, .form-row input { vertical-align: middle; }
+  .form-field { float: left; }
+  .aligned label { padding: 0 1em 3px 0; float: left; width: 8em; }
+  .checkbox-row label { padding: 0; float: none; width: auto; }
+  .submit-row { padding: 0 12px 8px 12px; text-align: right; }
+
+  ul { margin: 0; padding: 0 0 0 1.5em; line-height: 1.5em; }
+  li { margin: 0; padding: 0; }
+
+  span.control { text-decoration: underline; cursor: pointer; color: #00f; }
+
+  .selector { width:580px; float:left; }
+  .selector select { width:270px; height:17.2em; }
+  .selector-available, .selector-chosen { float:left; width:270px; text-align:center; margin-bottom:5px; }
+  .selector-available h2, .selector-chosen h2 { border:1px solid #ccc; }
+  .selector .selector-available h2 { background:white url("data:image/gif;base64,R0lGODlhEQAfAMQAAPf39%2B3t7efn5%2Brq6v39%2Ffr6%2BvDw8PPz8%2FPz8uTk5PHx8eHh4e7u7vv7%2B%2Fj4%2BOjo6PX19eLi4vz8%2FOzs7Pn5%2Bfb29ubm5v7%2B%2Fv%2F%2F%2FwAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAARAB8AAAWOICaOZGmeaKqubOu6VyzPdG3XRK7vfC79wKDw1ygaj8hiYclsOpeUqHRKjTqu2Kz2Cuh6v%2BBuZUwum8eQtHrNTh%2Fe8Lj8gFDY7%2Fi83cDv%2B%2F98DIKDhIWCAYiJiouIE46PkJGOA5SVlpeUD5qbnJ2aAqChoqOgFqanqKmmCaytrq%2BsEbKztLWyC7i5uru4IQA7") bottom left repeat-x; color:#666; }
+  .selector .selector-available input { width:230px; }
+  .selector ul.selector-chooser { float:left; width:22px; height:50px; background:url("data:image/gif;base64,R0lGODlhFgAvALMAAP7%2B%2Fu%2Fv7%2FHx8f39%2Fff39%2FPz8%2Fj4%2BPLy8vDw8Pn5%2Bf%2F%2F%2F%2B7u7gAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAAWAC8AAAR0UMkJTBFriWLA%2FBQRZCQZEB6oDEfpkscADshrL4g8tbd9TIRej6AAjIS2ACCB7FmatwvUhjhOr9isdsvter%2FgsHhMLpvP6LR6bbZmA5jthltgbjvuqVIRzBIlcVMCKSs1UDkzPEIxKkUiNyeEjRVSGhySEhEAOw%3D%3D") top center no-repeat; margin:8em 3px 0 3px; padding:0; }
+  .selector-chooser li { margin:0; padding:3px; list-style-type:none; }
+  .selector select { margin-bottom:5px; margin-top:0; }
+  .selector-add, .selector-remove { width:16px; height:16px; display:block; text-indent:-3000px; }
+  .selector-add { cursor: pointer; background:url("data:image/gif;base64,R0lGODlhEAAQAOZZAIapzYmsz4%2Bv0drk7%2Bfu9Za01aO913ugxoWoy36ix7TJ3%2Brw9%2BDp8rjP5oOmyZq514Ckyf3%2B%2Fu7z%2BLPI3oiqzY6tzpOy0u%2F0%2BKrC2n%2Bjyb7Q5YOny5m31YCjyI%2Bv0H2ix%2BHq85a11LnN4qO92aO%2B2p251nyhx4Klypm416W%2F27bN5J661n%2BkybLK4%2FP2%2BoKmyn2hx5q41vH1%2BbbK336jyJGx0o6u0Ovw9rbN5aS%2F24SozMLU59zm8Yqszpi41nyhxo%2Bw0YCkype11IepzOzy95%2B82Onv9qK%2B256717TM5JWz1MfY6aXB3JKx03%2BjyLHH3bPL45e21Z262KzG4JOz04eqzaXA3I6v0fX4%2B%2F%2F%2F%2FwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAFkALAAAAAAQABAAAAe7gFmCWQwYDhlBHQYDg4MREwhHSQ0NOEwUTxeNTxYtUJ%2BgUBw%2FEoIKHlOpqSqqUyFPWUQQOVa1tUZLtlYIAzM2UsDBBFg7wRYGFU0FBSkLzi5YWBrLSgcJAtgj0dvRItgwCQHiSNzbReImFToAAEIE7zLRJewABwovVfn6IFgr%2BhsGbny4QrAgDxIFr7BgpAABlYcPY0CkgmnQkyFRMmrM2ONAKUGPIADx8eABihonMjUSVMgBDScJFjUKBAA7") top center no-repeat; margin-bottom:2px; }
+  .selector-remove { cursor: pointer; background:url("data:image/gif;base64,R0lGODlhEAAQANU%2BAMHBwby8vPPz87S0tLGxsc7W3a21vbCxssXFxbu7u%2BDg4PDw8LK7xczMzLm5ufz9%2FaywtbKysubq79Xc48PDw76%2BvsvLy8rKyvn5%2BbK7xK6wsq%2B3v93d3ejs8MLCwtra2t7e3uvr68%2FPz7Ozs7O8xra2tsfHx%2Fj4%2BO3t7eTp7fHx8cDAwK%2Bxsvb29tLS0uLm69jY2M3NzbG6w7i4uNvb28nJyc7OzrW1tdXV1cjIyLe3t8TExL%2B%2Fv%2FX4%2B%2F%2F%2F%2FwAAACH5BAEAAD4ALAAAAAAQABAAAAarQJ%2FQN9loSjqWoTAcPjIOEUehALkSsk5TRqF5v14TQSJk8HBo9CeN28l8qVvMRrcpBHX6rECq5P45HD0qgH8ABhA8AIswPT0nApEXACsEBwGYOI49GJs5mBEHM6MIm52OCKMREAM3rhSOLQuzPK4EDAM6ujqlKLu6NwYvIzzFxRYhxsUDTAwOO9DQOdE7WEMyCTXa29oVY04ZNx4XDQ0WOzpZTUJFGq0HS01BADs%3D") top center no-repeat; }
+  span.selector-clearall { cursor: pointer; display:block; width:6em; text-align:left; margin-left:auto; margin-right:auto; font-weight:bold; color:#666;  padding:3px 0 3px 18px; }
+  span.selector-clearall:hover { color:#036; }
+  span.selector-clearall { background:url("data:image/gif;base64,R0lGODlhEAAQANUsANXV1cvLy7%2B%2Fv6urq6ysrLy8vNnZ2dbW1t7e3qamprKyssTExKioqMnJyaqqqrGxseTk5K6urrm5uc7OzqmpqaWlpbOzs9HR0d3d3e%2Fv7%2Ff39%2Bfn59ra2tjY2M%2FPz76%2BvtLS0vb29tfX19TU1Lq6uvLy8ru7u7a2tuPj46enp8fHx%2Fj4%2BP%2F%2F%2FwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAACwALAAAAAAQABAAAAaAQJZwSCwaj0gWpEChFCDIlSrSOBwaEdXKqJIAviIEQKIqogaBNKCESg9QRNNJIOBoVhj6yURMPUgbK4IdFhYPKX0OHxmCKyMDAw6IQyYVKQQIgiApKRV8QygJJ6MXIQajCXBEKgoqrh4GrGVFUgQLExMLBFpIKCYMDCaqScTFRUEAOw%3D%3D") left center no-repeat; }
+  </style>
+  <script type="text/javascript">
+  var Selects =
+  {
+      moveSelectedOptions: function(from, to)
+      {
+          var from = document.getElementById(from)
+          var to = document.getElementById(to);
+          var option;
+
+          for (var i = from.options.length - 1; i >= 0; i--)
+          {
+              option = from.options[i];
+              if (option.selected == true)
+              {
+                  to.appendChild(option);
+              }
+          }
+      },
+
+      moveAllOptions: function(from, to)
+      {
+          var from = document.getElementById(from);
+          var to = document.getElementById(to);
+          var option;
+
+          for (var i = from.options.length - 1; i >= 0; i--)
+          {
+              option = from.options[i];
+              to.appendChild(option);
+          }
+      }
+  };
+  </script>
+  <script type="text/javascript" src="TIL.lib.js"></script>
+  <script type="text/javascript">
+  window.addEventListener("load", function()
+  {
+      folderNames = chrome.extension.getBackgroundPage().folderNames;
+      var noFolderNamesMessage = document.getElementById("noFolderNames");
+      noFolderNamesMessage.style.display = (folderNames.length > 0 ? "none" : "");
+      TIL.UI.preferenceDocumentLoadHandler();
+  }, false);
+  </script>
+</head>
+<body>
+
+<form name="preferences" id="preferences" class="aligned">
+  <div class="module">
+    <h2>Topic Ignore List Preferences</h2>
+    <div class="form-row" id="noFolderNames">
+      <p>It looks like you haven't viewed any forum pages which have the folder jump menu on them yet in this session.</p>
+      <p>After you've viewed a topic listing page or a topic, the cofiguration options below will be populated.</p>
+    </div>
+    <div class="form-row">
+      <label>Folders:</label>
+      <div class="selector">
+        <div class="selector-available">
+          <h2>Available Folders</h2>
+          <select id="all_folders" class="filtered" name="all_folders" size="15" multiple="multiple">
+          </select>
+        </div>
+
+        <ul class="selector-chooser">
+          <li><span class="selector-add" onclick='Selects.moveSelectedOptions("all_folders","ignored_folders");'>Add</span></li>
+          <li><span class="selector-remove" onclick='Selects.moveSelectedOptions("ignored_folders","all_folders");'>Remove</span></li>
+        </ul>
+
+        <div class="selector-chosen">
+          <h2>Ignored Folders</h2>
+          <select class="filtered" name="ignored_folders" size="15" multiple="multiple" id="ignored_folders">
+          </select>
+          <span class="selector-clearall" onclick='Selects.moveAllOptions("ignored_folders", "all_folders");'>Clear all</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="submit-row">
+      <input type="button" value="Close" name="close_button" id="close_button">
+      <input type="button" value="Save Preferences" name="save_button" id="save_button">
+    </div>
+  </div>
+</form>
+
+</body>
+</html>
