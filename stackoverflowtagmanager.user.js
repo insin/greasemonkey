@@ -18,6 +18,10 @@
 /*
 CHANGELOG
 ---------
+2011-02-07 Display of the Ignored Tags and Interesting Tags sections can now be
+           toggled; the option to hide SO's own tag manager is now exposed; add
+           buttons now fit on the same line as tag inputs; tweaked whitespace
+           above options.
 2010-03-12 Fixed display on Questions and Unanswered pages; removed CSS fix
            which is no longer required; wildcard character is now stripped from
            tag links.
@@ -155,6 +159,19 @@ var Utilities =
 };
 
 /**
+ * Creates a setter function which sets and stores the configuration option
+ * with the given name.
+ */
+function configSetter(name)
+{
+    return function(value)
+    {
+        this[name] = value;
+        GM_setValue(name, value);
+    };
+}
+
+/**
  * Handles tag configuration and determines which questions should be ignored.
  *
  * @namespace
@@ -175,6 +192,8 @@ var TagConfig =
         this.onlyShowInteresting = GM_getValue("onlyShowInteresting", false);
         this.highlightInteresting = GM_getValue("highlightInteresting", false);
         this.hideBuiltInTagManager = GM_getValue("hideBuiltInTagManager", false);
+        this.showIgnoredTags = GM_getValue("showIgnoredTags", true);
+        this.showInterestingTags = GM_getValue("showInterestingTags", true);
         this._updateIgnoredTagRegExp();
         this._updateInterestingTagRegExp();
     },
@@ -271,46 +290,13 @@ var TagConfig =
         }
     },
 
-    /**
-     * Updates the <code>ignoreAction</code> setting and saves.
-     *
-     * @param {String} ignoreAction the action which should be taken for ignored
-     *                              questions - <code>TagConfig.HIDE</code> or
-     *                              <code>TagConfig.FADE</code>.
-     */
-    updateIgnoreAction: function(ignoreAction)
-    {
-        this.ignoreAction = ignoreAction;
-        GM_setValue("ignoreAction", this.ignoreAction);
-    },
-
-    /**
-     * Updates the <code>onlyShowInteresting</code> flag and saves.
-     *
-     * @param {Boolean} onlyShowInteresting <code>true</code if only questions
-     *                                      with interesting tags should be
-     *                                      displayed, <code>false</code>
-     *                                      otherwise.
-     */
-    updateOnlyShowInteresting: function(onlyShowInteresting)
-    {
-        this.onlyShowInteresting = onlyShowInteresting;
-        GM_setValue("onlyShowInteresting", this.onlyShowInteresting);
-    },
-
-    /**
-     * Updates the <code>highlightInteresting</code> flag and saves.
-     *
-     * @param {Boolean} highlightInteresting <code>true</code if questions with
-     *                                       interesting tags should be
-     *                                       highlighted, <code>false</code>
-     *                                       otherwise.
-     */
-    updateHighlightInteresting: function(highlightInteresting)
-    {
-        this.highlightInteresting = highlightInteresting;
-        GM_setValue("highlightInteresting", this.highlightInteresting);
-    },
+    // Configuration setters
+    updateIgnoreAction: configSetter("ignoreAction"),
+    updateOnlyShowInteresting: configSetter("onlyShowInteresting"),
+    updateHighlightInteresting: configSetter("highlightInteresting"),
+    updateHideBuiltInTagManager: configSetter("hideBuiltInTagManager"),
+    updateShowIgnoredTags: configSetter("showIgnoredTags"),
+    updateShowInterestingTags: configSetter("showInterestingTags"),
 
     /**
      * Determines if a given question is ignored or interesting based on its
@@ -411,6 +397,9 @@ var TagConfig =
  */
 var ConfigurationForm =
 {
+    BLACK_ARROW_UP: "\u25B2",
+    BLACK_ARROW_DOWN: "\u25BC",
+
     /**
      * Creates the configuration form.
      *
@@ -422,8 +411,16 @@ var ConfigurationForm =
         this.form = document.createElement("form");
         this.form.name = "tagManagerConfigurationForm";
 
+        this.ignoredTagsSection = document.createElement("div");
+
         var ignoredTagsHeader = document.createElement("h4");
-        ignoredTagsHeader.appendChild(document.createTextNode("Ignored Tags"));
+        ignoredTagsHeader.appendChild(document.createTextNode("Ignored Tags "));
+        this.ignoredTagsToggler = document.createElement("span");
+        this.ignoredTagsToggler.style.cursor = "pointer";
+        this.ignoredTagsToggler.addEventListener(
+            "click", Utilities.bind(this.toggleIgnoredTags, this), false);
+        ignoredTagsHeader.appendChild(this.ignoredTagsToggler);
+        this.updateIgnoredTagsTogglerDisplay(false); // Disable animation
 
         this.ignoredTags = document.createElement("div");
         this.ignoredTags.id = "ignoredTagsGM";
@@ -431,9 +428,11 @@ var ConfigurationForm =
         this.updateIgnoredTagDisplay();
 
         var ignoreTagFields = document.createElement("p");
+        ignoreTagFields.style.marginBottom = "0";
         this.ignoreTagInput = document.createElement("input");
         this.ignoreTagInput.type = "text";
         this.ignoreTagInput.name = "ignoreTag";
+        this.ignoreTagInput.size = 18;
         this.ignoreTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addIgnoredTag), false);
         var ignoreTagButton = document.createElement("input");
@@ -474,8 +473,16 @@ var ConfigurationForm =
         ignoreOptions.appendChild(hideIgnoredLabel);
         ignoreOptions.appendChild(fadeIgnoredLabel);
 
+        this.interestingTagsSection = document.createElement("div");
+
         var interestingTagsHeader = document.createElement("h4");
-        interestingTagsHeader.appendChild(document.createTextNode("Interesting Tags"));
+        interestingTagsHeader.appendChild(document.createTextNode("Interesting Tags "));
+        this.interestingTagsToggler = document.createElement("span");
+        this.interestingTagsToggler.style.cursor = "pointer";
+        this.interestingTagsToggler.addEventListener(
+            "click", Utilities.bind(this.toggleInterestingTags, this), false);
+        interestingTagsHeader.appendChild(this.interestingTagsToggler);
+        this.updateInterestingTagsTogglerDisplay(false); // Disable animation
 
         this.interestingTags = document.createElement("div");
         this.interestingTags.id = "interestingTagsGM";
@@ -483,9 +490,11 @@ var ConfigurationForm =
         this.updateInterestingTagDisplay();
 
         var interestingTagFields = document.createElement("p");
+        interestingTagFields.style.marginBottom = "0";
         this.interestingTagInput = document.createElement("input");
         this.interestingTagInput.type = "text";
         this.interestingTagInput.name = "interestingTagGM";
+        this.interestingTagInput.size = 18;
         this.interestingTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addInterestingTag), false);
         var interestingTagButton = document.createElement("input");
@@ -507,7 +516,7 @@ var ConfigurationForm =
         this.onlyShowInterestingCheckbox.addEventListener(
             "click", Utilities.bind(this.toggleOnlyShowInteresting, this), false);
         onlyShowInterestingLabel.appendChild(this.onlyShowInterestingCheckbox);
-        onlyShowInterestingLabel.appendChild(document.createTextNode(" Only show interesting questions"));
+        onlyShowInterestingLabel.appendChild(document.createTextNode(" Only show interesting"));
         interestingOptions.appendChild(onlyShowInterestingLabel);
         interestingOptions.appendChild(document.createElement("br"));
         var highlightInterestingLabel = document.createElement("label");
@@ -519,18 +528,32 @@ var ConfigurationForm =
         this.highlightInterestingCheckbox.addEventListener(
             "click", Utilities.bind(this.toggleHighlightInteresting, this), false);
         highlightInterestingLabel.appendChild(this.highlightInterestingCheckbox);
-        highlightInterestingLabel.appendChild(document.createTextNode(" Highlight interesting questions"));
+        highlightInterestingLabel.appendChild(document.createTextNode(" Highlight interesting"));
         interestingOptions.appendChild(highlightInterestingLabel);
+        interestingOptions.appendChild(document.createElement("br"));
+        var hideBuiltInLabel = document.createElement("label");
+        hideBuiltInLabel.htmlFor = "hideBuiltInGM";
+        this.hideBuiltInCheckbox = document.createElement("input");
+        this.hideBuiltInCheckbox.type = "checkbox";
+        this.hideBuiltInCheckbox.checked = TagConfig.hideBuiltInTagManager;
+        this.hideBuiltInCheckbox.id = "hideBuiltInGM";
+        this.hideBuiltInCheckbox.addEventListener(
+            "click", Utilities.bind(this.toggleHideBuiltInTagManager, this), false);
+        hideBuiltInLabel.appendChild(this.hideBuiltInCheckbox);
+        hideBuiltInLabel.appendChild(document.createTextNode(" Hide built-in tag manager"));
+        interestingOptions.appendChild(hideBuiltInLabel);
 
         this.form.appendChild(ignoredTagsHeader);
-        this.form.appendChild(this.ignoredTags);
-        this.form.appendChild(ignoreTagFields);
-        this.form.appendChild(ignoreOptions);
+        this.ignoredTagsSection.appendChild(this.ignoredTags);
+        this.ignoredTagsSection.appendChild(ignoreTagFields);
+        this.ignoredTagsSection.appendChild(ignoreOptions);
+        this.form.appendChild(this.ignoredTagsSection)
 
         this.form.appendChild(interestingTagsHeader);
-        this.form.appendChild(this.interestingTags);
-        this.form.appendChild(interestingTagFields);
-        this.form.appendChild(interestingOptions);
+        this.interestingTagsSection.appendChild(this.interestingTags);
+        this.interestingTagsSection.appendChild(interestingTagFields);
+        this.interestingTagsSection.appendChild(interestingOptions);
+        this.form.appendChild(this.interestingTagsSection)
     },
 
     /**
@@ -719,12 +742,39 @@ var ConfigurationForm =
     },
 
     /**
-     * Event handler for toggling display of interesting questions only.
+     * Event handler for toggling highlighting of interesting questions.
      */
     toggleHighlightInteresting: function()
     {
         TagConfig.updateHighlightInteresting(this.highlightInterestingCheckbox.checked);
         this.page.updateQuestionDisplay();
+    },
+
+    /**
+     * Event handler for toggling display of the built-in tag manager.
+     */
+    toggleHideBuiltInTagManager: function()
+    {
+        TagConfig.updateHideBuiltInTagManager(this.hideBuiltInCheckbox.checked);
+        this.page.updateBuiltInTagManagerDisplay();
+    },
+
+    /**
+     * Event handler for toggling display of the Ignored Tags section.
+     */
+    toggleIgnoredTags: function()
+    {
+        TagConfig.updateShowIgnoredTags(!TagConfig.showIgnoredTags);
+        this.updateIgnoredTagsTogglerDisplay();
+    },
+
+    /**
+     * Event handler for toggling display of the Interesting Tags section.
+     */
+    toggleInterestingTags: function()
+    {
+        TagConfig.updateShowInterestingTags(!TagConfig.showInterestingTags);
+        this.updateInterestingTagsTogglerDisplay();
     },
 
     /**
@@ -747,6 +797,53 @@ var ConfigurationForm =
                                TagConfig.interestingTags,
                                "interesting",
                                this.removeInterestingTag);
+    },
+
+    /**
+     * Updates display of the ignored tag toggler and section.
+     */
+    updateIgnoredTagsTogglerDisplay: function(animate)
+    {
+        this._updateTogglerDisplay(this.ignoredTagsToggler,
+                                   this.ignoredTagsSection,
+                                   TagConfig.showIgnoredTags,
+                                   animate);
+    },
+
+    /**
+     * Updates display of the ignored tag toggler and section.
+     */
+    updateInterestingTagsTogglerDisplay: function(animate)
+    {
+        this._updateTogglerDisplay(this.interestingTagsToggler,
+                                   this.interestingTagsSection,
+                                   TagConfig.showInterestingTags,
+                                   animate);
+    },
+
+    /**
+     * Does the real work for updating display of togglers and sections.
+     *
+     * @param {HTMLElement} toggler the toggler to be updated.
+     * @param {HTMLElement} section the section to be toggled.
+     * @param {Boolean} show <code>true</code> if the section should be shown,
+     *                       <code>false</code> otherwise.
+     * @param {Boolean} animate if <code>false</code>, the section toggle will
+     *                          not be animated.
+     */
+    _updateTogglerDisplay: function(toggler, section, show, animate)
+    {
+        toggler.innerHTML = "";
+        toggler.appendChild(document.createTextNode(show ? this.BLACK_ARROW_UP : this.BLACK_ARROW_DOWN));
+
+        if (animate === false)
+        {
+            section.style.display = (show ? "" : "none");
+        }
+        else
+        {
+            unsafeWindow.jQuery(section).slideToggle("fast");
+        }
     },
 
     /**
@@ -953,11 +1050,6 @@ TagManagerPage.prototype =
     {
         TagConfig.init();
 
-        if (TagConfig.hideBuiltInTagManager)
-        {
-            document.getElementById("ignoredTags").parentNode.style.display = "none";
-        }
-
         this.questions = [];
 
         var questionDivs = this.getQuestionDivs();
@@ -980,6 +1072,7 @@ TagManagerPage.prototype =
 
         this.insertModule(module);
         this.updateQuestionDisplay();
+        this.updateBuiltInTagManagerDisplay();
     },
 
     /**
@@ -1039,6 +1132,15 @@ TagManagerPage.prototype =
         }
 
         this.updateIgnoredQuestionCount(ignoredQuestions);
+    },
+
+    /**
+     * Updates display of the built-in tag manager.
+     */
+    updateBuiltInTagManagerDisplay: function()
+    {
+        document.getElementById("ignoredTags").parentNode.style.display =
+            (TagConfig.hideBuiltInTagManager ? "none" : "");
     },
 
     /**
