@@ -18,6 +18,7 @@
 /*
 CHANGELOG
 ---------
+2011-02-07 Fixed management of Recent Tags on the front page.
 2011-02-07 Display of the Ignored Tags and Interesting Tags sections can now be
            toggled; the option to hide SO's own tag manager is now exposed; add
            buttons now fit on the same line as tag inputs; tweaked whitespace
@@ -742,7 +743,7 @@ var ConfigurationForm =
     },
 
     /**
-     * Event handler for toggling highlighting of interesting questions.
+     * Event handler for toggling highlighting of interesting questions only.
      */
     toggleHighlightInteresting: function()
     {
@@ -1183,7 +1184,7 @@ Utilities.extendObject(FrontPage.prototype,
      */
     updateTagCloudDisplay: function()
     {
-        var recentTagsDiv = document.getElementById("recent-tags");
+        var recentTagsDiv = document.getElementById("recent-tags-list");
         var tagLinks = document.evaluate(".//a[@rel='tag']",
                                          recentTagsDiv,
                                          null,
@@ -1195,13 +1196,15 @@ Utilities.extendObject(FrontPage.prototype,
             var elementToHide =
                 (tagLink.parentNode == recentTagsDiv ? tagLink
                                                      : tagLink.parentNode);
-            if (TagConfig._ignoredTagRegExp.test(tagLink.textContent))
+            var display =  (TagConfig._ignoredTagRegExp.test(tagLink.textContent) ? "none" : "");
+            // Tag
+            elementToHide.style.display = display;
+            // Count
+            elementToHide.nextElementSibling.style.display = display;
+            // <br>
+            if (elementToHide.nextElementSibling.nextElementSibling)
             {
-                elementToHide.style.display = "none";
-            }
-            else
-            {
-                elementToHide.style.display = "";
+                elementToHide.nextElementSibling.nextElementSibling.style.display = display;
             }
         }
     },
