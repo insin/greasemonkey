@@ -16,7 +16,8 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse)
 
         sendResponse({
             ignoredTopics: localStorage.ignoredTopics,
-            ignoredFolders: localStorage.ignoredFolders
+            ignoredFolders: localStorage.ignoredFolders,
+            collapseIgnoredTopics: localStorage.collapseIgnoredTopics
         });
     }
     else if (request.type == "setpref")

@@ -1,6 +1,6 @@
 {
   "name": "Rllmuk Topic Ignore List",
-  "version": "1.0",
+  "version": "2.0.0",
   "description": "Moves selected topics or topics in certain folders to an unobtrusive Ignored Topics section at the foot of topic listing pages.",
   "icons": {
     "16": "icon16.png",

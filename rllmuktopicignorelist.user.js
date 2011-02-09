@@ -8,6 +8,8 @@
 
 /* Changelog
  * ---------
+ * 2011-02-09 Updated Ignored Topics toggling, as Chrome can't make use of
+ *            JavaScript in the content page.
  * 2010-08-12 Added an id to the Ignored Topics wrapper for styling.
  * 2010-08-06 Maintained topic striping when topics are moved around.
  * 2010-08-05 Restyled to fit in with default forum theme.
@@ -320,16 +322,17 @@ var TIL =
         var control = document.getElementById("toggle_ignored_topics");
         control.addEventListener("click", function(e)
         {
-            unsafeWindow.Element.toggle(document.getElementById("ignored_topics"));
-            if (unsafeWindow.Element.hasClassName(this.parentNode, "collapsed"))
+            var ignoredTopics = document.getElementById("ignored_topics");
+            ignoredTopics.style.display = (ignoredTopics.style.display == "none" ? "" : "none");
+            if (TIL.hasClass(this.parentNode, "collapsed"))
             {
-                unsafeWindow.Element.removeClassName(this.parentNode, "collapsed");
+                TIL.removeClass(this.parentNode, "collapsed");
             }
             else
             {
-                unsafeWindow.Element.addClassName(this.parentNode, "collapsed");
+                TIL.addClass(this.parentNode, "collapsed");
             }
-            unsafeWindow.Event.stop(e);
+            e.preventDefault();
         }, false);
     },
 
