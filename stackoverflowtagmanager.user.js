@@ -18,6 +18,7 @@
 /*
 CHANGELOG
 ---------
+2011-02-09 Tag inputs now leverage the site's tag autocomplete.
 2011-02-07 Fixed management of Recent Tags on the front page.
 2011-02-07 Display of the Ignored Tags and Interesting Tags sections can now be
            toggled; the option to hide SO's own tag manager is now exposed; add
@@ -436,6 +437,7 @@ var ConfigurationForm =
         this.ignoreTagInput.size = 18;
         this.ignoreTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addIgnoredTag), false);
+        unsafeWindow.bindTagFilterAutoComplete(this.ignoreTagInput);
         var ignoreTagButton = document.createElement("input");
         ignoreTagButton.type = "button";
         ignoreTagButton.value = "Add";
@@ -498,6 +500,7 @@ var ConfigurationForm =
         this.interestingTagInput.size = 18;
         this.interestingTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addInterestingTag), false);
+        unsafeWindow.bindTagFilterAutoComplete(this.interestingTagInput);
         var interestingTagButton = document.createElement("input");
         interestingTagButton.type = "button";
         interestingTagButton.value = "Add";
