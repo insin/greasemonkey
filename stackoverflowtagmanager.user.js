@@ -18,6 +18,7 @@
 /*
 CHANGELOG
 ---------
+2011-02-12 Tag inputs are now trimmed.
 2011-02-09 Tag inputs now leverage the site's tag autocomplete.
 2011-02-07 Fixed management of Recent Tags on the front page.
 2011-02-07 Display of the Ignored Tags and Interesting Tags sections can now be
@@ -157,6 +158,11 @@ var Utilities =
     {
         var regexp = new RegExp("(^|\\s)" + className + "(\\s|$)");
         return regexp.test(element.className);
+    },
+
+    trim: function(s)
+    {
+        return s.replace(/^\s+|\s+$/g, "");
     }
 };
 
@@ -565,7 +571,7 @@ var ConfigurationForm =
      */
     addIgnoredTag: function()
     {
-        var tag = this.ignoreTagInput.value;
+        var tag = Utilities.trim(this.ignoreTagInput.value);
         if (!tag)
         {
             return;
@@ -608,7 +614,7 @@ var ConfigurationForm =
      */
     addInterestingTag: function()
     {
-        var tag = this.interestingTagInput.value;
+        var tag = Utilities.trim(this.interestingTagInput.value);
         if (!tag)
         {
             return;
