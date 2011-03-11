@@ -15,7 +15,7 @@
 // @include        http://stackoverflow.com/unanswered/tagged?*
 // @include        http://stackoverflow.com/tags
 // @include        http://stackoverflow.com/tags/
-// @include        http://stackoverflow.com/tags/?*
+// @include        http://stackoverflow.com/tags?*
 // ==/UserScript==
 
 /*
