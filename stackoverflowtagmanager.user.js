@@ -13,11 +13,15 @@
 // @include        http://stackoverflow.com/unanswered/tagged
 // @include        http://stackoverflow.com/unanswered/tagged/
 // @include        http://stackoverflow.com/unanswered/tagged?*
+// @include        http://stackoverflow.com/tags
+// @include        http://stackoverflow.com/tags/
+// @include        http://stackoverflow.com/tags/?*
 // ==/UserScript==
 
 /*
 CHANGELOG
 ---------
+2011-03-11 Added tag details toggle for updated tag page.
 2011-02-12 Tag inputs are now trimmed.
 2011-02-09 Tag inputs now leverage the site's tag autocomplete.
 2011-02-07 Fixed management of Recent Tags on the front page.
@@ -81,7 +85,7 @@ var Utilities =
     {
         return function()
         {
-            func.apply(context, arguments);
+            return func.apply(context, arguments);
         };
     },
 
@@ -110,6 +114,21 @@ var Utilities =
             }
         }
         return destination;
+    },
+
+    /**
+     * Uses a dummy constructor to make a child constructor inherit from a
+     * parent constructor.
+     *
+     * @param {Function} child the child constructor.
+     * @param {Function} parent the parent constructor.
+     */
+    inheritFrom: function(child, parent)
+    {
+        function F() {};
+        F.prototype = parent.prototype;
+        child.prototype = new F();
+        child.prototype.constructor = child;
     },
 
     /**
@@ -1178,7 +1197,7 @@ TagManagerPage.prototype =
  * @augments TagManagerPage
  */
 function FrontPage() {};
-FrontPage.prototype = new TagManagerPage();
+Utilities.inheritFrom(FrontPage, TagManagerPage);
 Utilities.extendObject(FrontPage.prototype,
 {
     updateQuestionDisplay: function()
@@ -1246,7 +1265,7 @@ Utilities.extendObject(FrontPage.prototype,
  * @augments TagManagerPage
  */
 function QuestionsPage() {};
-QuestionsPage.prototype = new TagManagerPage();
+Utilities.inheritFrom(QuestionsPage, TagManagerPage);
 Utilities.extendObject(QuestionsPage.prototype,
 {
     getQuestionDivs: function()
@@ -1270,14 +1289,141 @@ Utilities.extendObject(QuestionsPage.prototype,
     }
 });
 
-GM_addStyle('.sotm-interesting { background-color: #ffb !important; }');
-
-if (window.location.href.indexOf("questions") != -1 ||
-    window.location.href.indexOf("unanswered") != -1)
+/**
+ * Adds a checkbox to toggle display of additional details on the tags page.
+ *
+ * @constructor
+ */
+function TagsPage() {};
+TagsPage.prototype =
 {
-    new QuestionsPage().init();
+    CONFIG_NAME: "showTagDetail",
+
+    init: function()
+    {
+        // Override tag filter callback to apply display preferences on sucess
+        var tagsPage = this;
+        unsafeWindow.finished = function(txt)
+        {
+            unsafeWindow.$.ajax({
+                type: "POST",
+                url: "/filter/tags-for-index",
+                data: {filter: txt, tab: 'count'},
+                dataType: "html",
+                success: function (result) {
+                    var domelement = unsafeWindow.$(result);
+                    unsafeWindow.$("#tags_list").html(domelement);
+                    unsafeWindow.$(".pager").hide();
+                    if (!tagsPage.showTagDetailConfig())
+                    {
+                        tagsPage.toggleDetail();
+                    }
+                }
+            });
+        }
+
+        // Get preferences, defaulting to show details if undefined
+        var config = this.showTagDetailConfig();
+        if (typeof config == "undefined")
+        {
+            config = true;
+            this.showTagDetailConfig(true);
+        }
+
+        this.insertControls();
+
+        // Don't call the toggleDetail method if we don't have to
+        if (!config)
+        {
+            this.toggleDetail();
+        }
+    },
+
+    /**
+     * Set showTagDetail setting if we were given an argument, otherwise get it.
+     */
+    showTagDetailConfig: function(value)
+    {
+        if (!arguments.length)
+        {
+            return GM_getValue(this.CONFIG_NAME);
+        }
+        GM_setValue(this.CONFIG_NAME, value);
+    },
+
+    /**
+     * Insert a checkbox for tag detail preferences.
+     */
+    insertControls: function()
+    {
+        var tagsPage = this,
+            target = document.getElementById("tagfilter").parentNode,
+            label = document.createElement("label"),
+            checkbox = document.createElement("input");
+
+        checkbox.type = "checkbox";
+        checkbox.checked = this.showTagDetailConfig();
+        checkbox.addEventListener("click", function()
+        {
+            tagsPage.showTagDetailConfig(this.checked);
+            tagsPage.toggleDetail();
+        }, false);
+        label.className = "sotm-tag-detail";
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(" Show tag details"));
+
+        target.appendChild(document.createTextNode(" "));
+        target.appendChild(label);
+    },
+
+    /**
+     * Display or hide tag details, as appropriate.
+     */
+    toggleDetail: function()
+    {
+        var showDetail = this.showTagDetailConfig(),
+            display = (showDetail ? "" : "none"),
+            classFunc = Utilities.bind(
+                (showDetail ? Utilities.removeClass : Utilities.addClass),
+                Utilities),
+            details = document.evaluate("//td[contains(@class, 'tag-cell')]/div[position()=1]",
+                                        document,
+                                        null,
+                                        XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                                        null);
+
+        for (var i = 0, l = details.snapshotLength; i < l; i++)
+        {
+            var detail = details.snapshotItem(i);
+            detail.style.display = display;
+            if (detail.nextElementSibling)
+            {
+                detail.nextElementSibling.style.display = display;
+            }
+            classFunc(detail.parentNode, "sotm-tag-cell");
+        }
+    }
+};
+
+// Custom styles used by generated controls
+GM_addStyle('.sotm-interesting { background-color: #ffb !important; }');
+GM_addStyle('.sotm-tag-detail { margin-left: .5em; }');
+GM_addStyle('.sotm-tag-cell { padding-top: 0 !important; padding-bottom: 0 !important; }');
+
+// Determine which type of page we're on and create the appropriate page object
+// to handle it.
+var page;
+if (window.location.pathname.indexOf("/tags") === 0)
+{
+    page = new TagsPage();
+}
+else if (window.location.pathname.indexOf("/questions") === 0 ||
+         window.location.pathname.indexOf("/unanswered") === 0)
+{
+    page = new QuestionsPage();
 }
 else
 {
-    new FrontPage().init();
+    page = new FrontPage();
 }
+page.init();
