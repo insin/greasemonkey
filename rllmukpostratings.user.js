@@ -32,7 +32,7 @@ var getRating = (function() {
       // Check the positive ratings, high to low
       for (var i = 0, l = posRatings.length; i < l; i++) {
         var rating = posRatings[i];
-        if (rating.score >= 0 && score >= rating.score) {
+        if (score >= rating.score) {
           result = rating;
           break;
         }
@@ -41,7 +41,7 @@ var getRating = (function() {
       // Check the negative ratings, low to high
       for (var i = negRatings.length - 1; i >= 0; i--) {
         var rating = negRatings[i];
-        if (rating.score < 0 && score <= rating.score) {
+        if (score <= rating.score) {
           result = rating;
           break;
         }
