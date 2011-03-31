@@ -12,11 +12,11 @@ if (window.location.href.indexOf("/index.php?showtopic=") == -1)
 }
 
 var posRatings = [
-    {score: 10,  icon: "http://www.choddo.co.uk/images/reddwhite.gif",  text: "CHODULAR", alt: "*"}
+    {score: 10, icon: "http://www.choddo.co.uk/images/reddwhite.gif", text: "CHODULAR"}
 ];
 
 var negRatings = [
-    {score: -10, icon: "https://si1.twimg.com/profile_images/640505996/brucepalm_normal.png", text: "BRUCEULAR", alt: ""}
+    {score: -10, icon: "https://si1.twimg.com/profile_images/640505996/brucepalm_normal.png", text: "BRUCEULAR"}
 ];
 
 function getRating(score)
@@ -95,5 +95,5 @@ for (var i = 0; i < scoreNodes.snapshotLength; i++)
 
     // Insert custom rating
     repHighlight.innerHTML =
-        '<img alt="' + rating.alt + '" src="' + rating.icon + '"><br>' + rating.text;
+        '<img src="' + rating.icon + '"><br>' + rating.text;
 }
