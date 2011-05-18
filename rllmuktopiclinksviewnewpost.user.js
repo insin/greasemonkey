@@ -8,6 +8,7 @@
 
 /* Changelog
  * ---------
+ * 2011-05-18 Changed forum URL check so session IDs won't throw it off.
  * 2010-08-02 Updated for IPB3
  * 2009-10-01 Initial version
  * -------------------------------------------------------------------------- */
