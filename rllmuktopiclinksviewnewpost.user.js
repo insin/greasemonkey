@@ -14,7 +14,7 @@
 
 // Don't do anything if we're not on a topic listing page
 if (   window.location.href.indexOf("module=search") == -1
-    && window.location.href.indexOf("/index.php?showforum=") == -1)
+    && window.location.href.indexOf("showforum=") == -1)
 {
     return;
 }
