@@ -21,6 +21,8 @@
 /*
 CHANGELOG
 ---------
+2011-07-13 Autocomplete function is no longer available when GM is executing -
+           now registered on first focus of tag inputs.
 2011-03-11 Added tag details toggle for updated tag page.
 2011-02-12 Tag inputs are now trimmed.
 2011-02-09 Tag inputs now leverage the site's tag autocomplete.
@@ -462,7 +464,9 @@ var ConfigurationForm =
         this.ignoreTagInput.size = 18;
         this.ignoreTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addIgnoredTag), false);
-        unsafeWindow.bindTagFilterAutoComplete(this.ignoreTagInput);
+        this.ignoreTagInput.autoCompleteBound = false;
+        this.ignoreTagInput.addEventListener(
+            "focus", this.bindAutoComplete, false);
         var ignoreTagButton = document.createElement("input");
         ignoreTagButton.type = "button";
         ignoreTagButton.value = "Add";
@@ -525,7 +529,9 @@ var ConfigurationForm =
         this.interestingTagInput.size = 18;
         this.interestingTagInput.addEventListener(
             "keypress", this.keyPressHandler(this.addInterestingTag), false);
-        unsafeWindow.bindTagFilterAutoComplete(this.interestingTagInput);
+        this.interestingTagInput.autoCompleteBound = false;
+        this.interestingTagInput.addEventListener(
+            "focus", this.bindAutoComplete, false);
         var interestingTagButton = document.createElement("input");
         interestingTagButton.type = "button";
         interestingTagButton.value = "Add";
@@ -690,6 +696,18 @@ var ConfigurationForm =
                 addTagFunc.call(this);
             }
         }, this);
+    },
+
+    /**
+     * Binds the OOTB autocomplete to a tag input the first time it is accessed.
+     */
+    bindAutoComplete: function()
+    {
+        if (!this.autoCompleteBound)
+        {
+            unsafeWindow.bindTagFilterAutoComplete(this);
+            this.autoCompleteBound = true;
+        }
     },
 
     /**
