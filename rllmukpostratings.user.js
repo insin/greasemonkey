@@ -13,11 +13,15 @@ if (window.location.href.indexOf('/index.php?showtopic=') == -1) {
 // TODO Config UI and storage for these settings
 
 var posRatings = [
+  {score: 30, icon: 'http://www.rllmukforum.com/uploads/profile/photo-thumb-319.jpg', text: 'LEGENDARY'},
+  {score: 20, icon: 'http://www.rllmukforum.com/uploads/av-83.jpg', text: 'GRAHAMAZING'},
   {score: 10, icon: 'http://www.choddo.co.uk/images/reddwhite.gif', text: 'CHODULAR'}
 ];
 
 var negRatings = [
-  {score: -10, icon: 'https://si1.twimg.com/profile_images/640505996/brucepalm_normal.png', text: 'BRUCEULAR'}
+  {score: -10, icon: 'http://www.rllmukforum.com/uploads/av-16830.jpg', text: "FUGU'D UP"},
+  {score: -20, icon: 'https://si1.twimg.com/profile_images/640505996/brucepalm_normal.png', text: 'BRUCEULAR'},
+  {score: -30, icon: 'http://www.rodentproofaz.com/wp-content/themes/default/images/pigeon-thumb.png', text: 'CRUNCHY'}
 ];
 
 var getRating = (function() {
