@@ -9,6 +9,7 @@
 /* Changelog
  * ---------
  * 2012-01-31 Updated XPATHs and parentNode counts for the IPB 3.2 upgrade.
+ *            Fixed synchronising list from the "Users You're Ignoring" page.
  * 2010-12-14 Minor tweaks to make the script work in Chrome with IPB3.
  * 2010-08-05 Restyled to fit in with default forum theme.
  * 2010-07-27 Tweaks after testing on updated forum.
@@ -568,7 +569,7 @@ UIL.Config =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//table[@summary='Ignored Users']/tbody/tr/td[1]/strong/a[1]",
+                "//a[@hovercard-id]",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
