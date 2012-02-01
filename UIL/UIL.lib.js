@@ -8,6 +8,8 @@
 
 /* Changelog
  * ---------
+ * 2012-01-31 Updated XPATHs and parentNode counts for the IPB 3.2 upgrade.
+ *            Fixed synchronising list from the "Users You're Ignoring" page.
  * 2010-12-14 Minor tweaks to make the script work in Chrome with IPB3.
  * 2010-08-05 Restyled to fit in with default forum theme.
  * 2010-07-27 Tweaks after testing on updated forum.
@@ -129,7 +131,7 @@ var UIL =
     determineCurrentPageType: function()
     {
         var pageType = null;
-        if (window.location.href.indexOf("/index.php?showtopic=") != -1)
+        if (window.location.href.indexOf("index.php?/topic") != -1)
         {
             pageType = "topic";
         }
@@ -140,7 +142,7 @@ var UIL =
         {
             pageType = "postEditPreview";
         }
-        else if (window.location.href.indexOf("/index.php?showforum=") != -1 ||
+        else if (window.location.href.indexOf("index.php?/forum") != -1 ||
                  window.location.href.indexOf("module=search") != -1)
         {
             pageType = "topicListing";
@@ -179,7 +181,7 @@ var UIL =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//a[@class='url fn']",
+                "//span[@class='author vcard']/a",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -232,10 +234,12 @@ var UIL =
             // Remove posts containing quotes from ignored usernames
             for (var i = 0; i < nodes.snapshotLength; i++)
             {
-                var node = nodes.snapshotItem(i);
+                var node = nodes.snapshotItem(i)
+                  , text = node.textContent;
+
                 for (var j = 0; j < ignoredUsers.length; j++)
                 {
-                    if (node.textContent.indexOf(ignoredUsers[j] + ", on") === 0)
+                    if (text.indexOf(ignoredUsers[j] + ", on") === 0)
                     {
                         var postNode = node.parentNode.parentNode.parentNode.parentNode;
                         // May have already been hidden due to ignored quoter or
@@ -276,7 +280,7 @@ var UIL =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//div[@id='topic_summary']/div/h3/a[1]",
+                "//div[@id='topic_summary']/div/div/h3/a[1]",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -289,7 +293,7 @@ var UIL =
 
             if (ignoredUsers.indexOf(node.innerHTML) != -1)
             {
-                node.parentNode.parentNode.style.display = "none";
+                node.parentNode.parentNode.parentNode.style.display = "none";
                 itemsRemoved++;
             }
         }
@@ -313,7 +317,7 @@ var UIL =
                 {
                     if (node.textContent.indexOf(ignoredUsers[j] + ", on") === 0)
                     {
-                        var postNode = node.parentNode.parentNode.parentNode;
+                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
                         // May have already been hidden due to ignored quoter or
                         // another ignored quotee in the same post.
                         if (postNode.style.display != "none")
@@ -343,12 +347,12 @@ var UIL =
         if (window.location.href.indexOf("module=search") != -1)
         {
             var topicStarterXPathQuery =
-                "//table[@id='forum_table']/tbody/tr/td[4]/a[1]";
+                "//span[@class='desc lighter blend_links toggle_notify_off']/a[1]";
         }
         else
         {
             var topicStarterXPathQuery =
-                "//table[@id='forum_table']/tbody/tr/td[3]/a[1]";
+                "//span[@class='desc lighter blend_links']/a[1]";
         }
 
         var topicStarterLinkNodes =
@@ -364,7 +368,7 @@ var UIL =
             var topicStarterLinkNode = topicStarterLinkNodes.snapshotItem(i);
             if (ignoredUsers.indexOf(topicStarterLinkNode.innerHTML) != -1)
             {
-                var row = topicStarterLinkNode.parentNode.parentNode;
+                var row = topicStarterLinkNode.parentNode.parentNode.parentNode;
                 row.parentNode.removeChild(row);
                 itemsRemoved++;
             }
@@ -441,14 +445,14 @@ var UIL =
 
     registerControls: function(pageType)
     {
-        var controls =
-            document.getElementById("section_links");
+        var homeItem =
+            document.getElementById("nav_home");
         // Only insert this link for GM - Chrome will use a page action
-        if (isGM && controls)
+        if (isGM && homeItem)
         {
-            controls.insertBefore(this.createLinkControl("User Ignore List",
-                                                         UIL.UI.show.bind(UIL.UI)),
-                                  controls.firstChild);
+            homeItem.parentNode.insertBefore(this.createLinkControl("User Ignore List",
+                                                                    UIL.UI.show.bind(UIL.UI)),
+                                             homeItem);
         }
 
         /*
@@ -503,6 +507,7 @@ var UIL =
     createLinkControl: function(name, handler)
     {
         var li = document.createElement("li");
+        li.className = "right"
         var a = document.createElement("a");
         a.href = "#";
         a.appendChild(document.createTextNode(name));
@@ -564,7 +569,7 @@ UIL.Config =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//table[@summary='Ignored Users']/tbody/tr/td[1]/strong/a[1]",
+                "//a[@hovercard-id]",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -844,7 +849,7 @@ UIL.UI =
     {
         return function()
         {
-            if (confirm("Are you sure you want to unignore " + userName + "?"))
+            if (!isGM || confirm("Are you sure you want to unignore " + userName + "?"))
             {
                 UIL.Config.removeGloballyIgnoredUser(userName);
                 this.populateGloballyIgnoredUserList();
@@ -856,7 +861,7 @@ UIL.UI =
     {
         return function()
         {
-            if (confirm("Are you sure you want to unignore " + userName + " in topic " + topicId + "?"))
+            if (!isGM || confirm("Are you sure you want to unignore " + userName + " in topic " + topicId + "?"))
             {
                 UIL.Config.removeIgnoredUserForTopic(topicId, userName);
                 this.populatePerTopicIgnoredUserList();

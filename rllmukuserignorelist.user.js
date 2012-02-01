@@ -849,7 +849,7 @@ UIL.UI =
     {
         return function()
         {
-            if (confirm("Are you sure you want to unignore " + userName + "?"))
+            if (!isGM || confirm("Are you sure you want to unignore " + userName + "?"))
             {
                 UIL.Config.removeGloballyIgnoredUser(userName);
                 this.populateGloballyIgnoredUserList();
@@ -861,7 +861,7 @@ UIL.UI =
     {
         return function()
         {
-            if (confirm("Are you sure you want to unignore " + userName + " in topic " + topicId + "?"))
+            if (!isGM || confirm("Are you sure you want to unignore " + userName + " in topic " + topicId + "?"))
             {
                 UIL.Config.removeIgnoredUserForTopic(topicId, userName);
                 this.populatePerTopicIgnoredUserList();
