@@ -8,29 +8,38 @@
 
 /* Changelog
  * ---------
+ * 2012-02-02 Updated for IPB 3.2.
  * 2011-05-18 Changed forum URL check so session IDs won't throw it off.
- * 2010-08-02 Updated for IPB3
- * 2009-10-01 Initial version
+ * 2010-08-02 Updated for IPB3.
+ * 2009-10-01 Initial version.
  * -------------------------------------------------------------------------- */
 
 // Don't do anything if we're not on a topic listing page
-if (   window.location.href.indexOf("module=search") == -1
-    && window.location.href.indexOf("showforum=") == -1)
-{
-    return;
+if (window.location.href.indexOf("module=search") == -1 &&
+    window.location.href.indexOf("index.php?/forum") == -1) {
+  return
 }
 
 var topicLinkXPathQuery = (window.location.href.indexOf("module=search") != -1
-    ? "//table[@id='forum_table']/tbody/tr/td[2]/a[@title='View result']"
-    : "//table[@id='forum_table']/tbody/tr/td[2]/a[@class='topic_title']");
+                           ? "//a[@title='View result']"
+                           : "//a[@class='topic_title']")
 
 var topicLinkNodes =
-    document.evaluate(topicLinkXPathQuery, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-for (var i = 0; i < topicLinkNodes.snapshotLength; i++)
-{
-    var topicLinkNode = topicLinkNodes.snapshotItem(i);
-    if (topicLinkNode.href.indexOf("getnewpost") == -1)
-    {
-        topicLinkNode.href = topicLinkNode.href + "&view=getnewpost";
-    }
+    document.evaluate(
+        topicLinkXPathQuery,
+        document,
+        null,
+        XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+        null)
+for (var i = 0; i < topicLinkNodes.snapshotLength; i++) {
+  var topicLinkNode = topicLinkNodes.snapshotItem(i)
+    , href = topicLinkNode.href
+    , lastSlash = href.lastIndexOf('/')
+
+  // Strip the trailing page__fromsearch__1 from search result links
+  if (lastSlash != href.length - 1) {
+    href = href.substring(0, lastSlash + 1)
+  }
+
+  topicLinkNode.href = href + 'unread/'
 }
