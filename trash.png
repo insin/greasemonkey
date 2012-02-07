@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>The data: URI kitchen</title>
+  <style type="text/css">
+    textarea { display: block; }
+    p { margin: 1em 0 0 0; }
+    p + p.note { margin: 0; }
+  </style>
+ </head>
+ <body>
+  <form action="data" method="post" enctype="multipart/form-data">
+   <h1>The data: URI kitchen</h1>
+   <p>
+    Type:
+    <input type="text" name="type" value="text/html;charset=utf-8">
+    <label><input type="checkbox" name="base64" value="1"> base64 </label>
+<textarea rows="12" cols="80" name="content">&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot;&gt;
+&lt;html lang=&quot;en&quot;&gt;
+ &lt;head&gt;
+  &lt;title&gt;Test&lt;/title&gt;
+  &lt;style type=&quot;text/css&quot;&gt;
+  &lt;/style&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+  &lt;p&gt;&lt;/p&gt;
+ &lt;/body&gt;
+&lt;/html&gt;
+</textarea>
+   </p>
+   <p>
+    <label>Alternatively, give an HTTP URI to use as input: <input type="text" name="uri" size="70"></label>
+   </p>
+   <p class="note">If you use the URI option, the MIME type will be taken from the remote site, not the type field above.</p>
+   <p>
+    <label>Alternatively, upload a file: <input type="file" name="file"></label>
+    <label><input type="checkbox" name="typeFromFile" checked="checked"> Trust UA-provided MIME type, if any.</label>
+   </p>
+   <p class="note">If you don't trust the UA-provided type, then the type you provide in the text field at the top will be used instead.</p>
+   <p>
+    <input type="submit" value="Generate">
+   </p>
+  </form>
+  <p>See <a href="http://www.ietf.org/rfc/rfc2397">RFC 2387</a>. Privacy policy: All activity is logged, but only serious abuse will be publicised.</p>
+  <pre>HTML4.0 DOCTYPE: &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"&gt;
+XHTML1 namespace: http://www.w3.org/1999/xhtml</pre>
+ </body>
+</html>

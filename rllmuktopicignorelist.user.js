@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name        Rllmuk Topic Ignore List
 // @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
-// @description Implements a topic ignore list, sending selected topics to an unobtrusive Ignored Topics section at the foot of topic listing pages. For users who primarily browse the forum using View New Posts, topics may also be ignored on search result pages based on the folder they belong to.
+// @description Implements a topic ignore list, sending selected topics to an unobtrusive Ignored Topics section at the foot of topic listing pages.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2012-02-07 Updated for IPB 3.2.
  * 2011-02-09 Updated Ignored Topics toggling, as Chrome can't make use of
  *            JavaScript in the content page.
  * 2010-08-12 Added an id to the Ignored Topics wrapper for styling.
@@ -120,9 +121,9 @@ Function.prototype.bind = function(object)
 var TIL =
 {
     pageType: null,
-    topicIdRegExp: /showtopic=([0-9]+)/,
-    crossIconDataURI: "data:image/gif;base64,R0lGODlhCAAIAKECAIyMjKqqqp%2Bfn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQFIRmcXvAYFss0SmlQ3qqAgA7",
-    plusIconDataURI: "data:image/gif;base64,R0lGODlhCAAIAKECAIuLi6qqqp%2Bfn5%2BfnyH5BAEKAAIALAAAAAAIAAgAAAIQlBGmgntpgpwSWHRVc3v1AgA7",
+    topicIdRegExp: /\/topic\/([0-9]+)-/,
+    trashIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAANCAMAAABIK2QJAAAAAXNSR0IArs4c6QAAAIFQTFRFMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzVFqv0AAAAAF0Uk5TAEDm2GYAAAApSURBVAjXY2BgYGDS0tJiYoAALShm0EIABhSALKzFD4VUZDNBjWdiAACJ5QyrLpYjAwAAAABJRU5ErkJggg%3D%3D",
+    tickIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAALCAMAAACTbPdTAAAAAXNSR0IArs4c6QAAAIFQTFRFMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzVFqv0AAAAAF0Uk5TAEDm2GYAAAAySURBVAjXY2CAA2YGJMCoxYjM0dJiRuaA5TiROUxACiGjBQGMCB1aCPMYkTloNiG5AgB4FAUbj0thrwAAAABJRU5ErkJggg%3D%3D",
 
     init: function()
     {
@@ -141,7 +142,7 @@ var TIL =
         {
             pageType = "search";
         }
-        else if (window.location.href.indexOf("/index.php?showforum=") != -1)
+        else if (window.location.href.indexOf("index.php?/forum") != -1)
         {
             pageType = "topicListing";
         }
@@ -151,8 +152,8 @@ var TIL =
     getTopicLinkXPath: function()
     {
         return (this.pageType == "search"
-            ? "//table[@id='forum_table']/tbody/tr/td[2]/a[@title='View result']"
-            : "//table[@id='forum_table']/tbody/tr/td[2]/a[@class='topic_title']");
+            ? "//table[@id='forum_table']/tbody/tr/td[2]/h4/a[@title='View result']"
+            : "//table[@id='forum_table']/tbody/tr/td[2]/h4/a[@class='topic_title']");
     },
 
     processPage: function()
@@ -181,42 +182,36 @@ var TIL =
                 removedTopics.splice(0, 0, ignoredTopicIds.splice(ignoredTopicIndex, 1));
             }
 
-            // Create control for topic management
-            var control = document.createElement("span");
+            // Create control cell for topic management
+            var control = document.createElement("td");
+            control.className = "col_f_preview";
+            var icon = document.createElement("img")
+            icon.src = beingIgnored ? this.tickIcon : this.trashIcon;
+            icon.className = "expander";
+            icon.style.verticalAlign = "text-top";
             if (beingIgnored)
             {
-                control.innerHTML = '<img src="' + this.plusIconDataURI + '"> ';
+                icon.alt = "Unignore";
+                icon.title = "Stop ignoring this topic";
             }
             else
             {
-                control.innerHTML = '<img src="' + this.crossIconDataURI + '">&nbsp;&nbsp;&nbsp;';
+                icon.alt = "Ignore";
+                icon.title = "Ignore this topic";
             }
-            control = control.firstChild;
-            control.style.cursor = "pointer";
-            if (beingIgnored)
-            {
-                control.alt = "Unignore";
-                control.title = "Click to stop ignoring this topic";
-            }
-            else
-            {
-                control.alt = "Ignore";
-                control.title = "Click to ignore this topic";
-            }
+            control.appendChild(icon);
             control.addEventListener("click", this.createIgnoreHandler(topicId), false);
 
             // Find the table cell which will contain the ignore control
-            var cell = topicLinkNode.parentNode.parentNode.getElementsByTagName("td")[0];
+            var cell = topicLinkNode.parentNode.parentNode.nextElementSibling.nextElementSibling
 
             // Insert the control
-            cell.appendChild(document.createTextNode(" "));
-            cell.appendChild(control);
+            cell.parentNode.insertBefore(control, cell);
 
             // Insert the Ignored Topics section on the first loop iteration
             if (i === 0)
             {
-                var postTable = cell.parentNode.parentNode.parentNode.parentNode;
-                this.insertIgnoredTopicsSection(postTable);
+                this.insertIgnoredTopicsSection();
             }
 
             // If this topic is being ignored, move its row to the Ignored Topics
@@ -235,32 +230,10 @@ var TIL =
                 removedTopics.concat(ignoredTopicIds));
         }
 
-        // Remove topics from ignored folders if we're on a search page
-        if (this.pageType == "search")
+        if (this.pageType == 'search')
         {
-            var ignoredFolderNames = TIL.Config.getIgnoredFolderNames();
-            if (ignoredFolderNames.length > 0)
-            {
-                var folderLinkNodes =
-                    document.evaluate(
-                        "//table[@id='forum_table']/tbody/tr/td[3]/a",
-                        document,
-                        null,
-                        XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                        null);
-                for (var i = 0; i < folderLinkNodes.snapshotLength; i++)
-                {
-                    var folderLinkNode = folderLinkNodes.snapshotItem(i);
-                    if (ignoredFolderNames.indexOf(folderLinkNode.innerHTML) != -1)
-                    {
-                        var row = folderLinkNode.parentNode.parentNode;
-                        document.getElementById("TILInsertTarget").appendChild(row);
-                    }
-                }
-            }
+            this.fixTopicStriping();
         }
-
-        this.fixTopicStriping();
     },
 
     /**
@@ -275,63 +248,33 @@ var TIL =
     {
         var collapse = TIL.Config.getCollapseIgnoredTopics();
         var toggleableSectionHTML =
-'<div class="category_block block_wrap" id="TILIgnoredTopicsWrap">\
-<h3 class="maintitle' + (collapse ? ' collapsed' : '') + '" id="category_ignoredtopics" style="overflow: visible !important"><a href="#" class="toggle right" id="toggle_ignored_topics">Toggle ignored topics</a> Ignored Topics</h3>\
-<div class="table_wrap" id="ignored_topics" style="overflow: visible;' + (collapse ? ' display: none;' : '') + '">\
-<table summary="Ignored Topics" class="ipb_table">\
-<tbody id="TILInsertTarget">\
-<tr class="header">\
-<th scope="col" class="col_f_icon">&nbsp;</th>\
-<th scope="col" class="col_f_topic">Topic</th>';
+'<div id="ignored_topics" class="category_block block_wrap' + (collapse ? ' collapsed' : '') + '">' +
+'<h3 class="maintitle"><a id="toggle_ignored_topics" class="toggle right" title="Toggle this category" href="#">Toggle Ignored Topics</a>Ignored Topics</h3>' +
+'<table id="ignored_topics_table" style="' + (collapse ? 'display: none' : '') + '" class="ipb_table topic_list hover_rows" summary="Ignored Topics">' +
+'<tbody id="TILInsertTarget">' +
+'</tbody>' +
+'</table>' +
+'</div>';
 
-        // Search page topic lists have an extra column
-        if (this.pageType == "search")
+        var ignoredSection = document.createElement("div");
+        ignoredSection.innerHTML = toggleableSectionHTML;
+        var footer = document.getElementById("forum_footer")
+        if (footer)
         {
-            toggleableSectionHTML += '<th scope="col" class="col_f_starter">Forum</th>';
-        }
-
-        toggleableSectionHTML += '<th scope="col" class="col_f_starter short">Started By</th>\
-<th scope="col" class="col_f_views stats">Stats</th>\
-<th scope="col" class="col_f_post">Last Post Info</th>\
-</tr>\
-</tbody>\
-</table>\
-</div>\
-</div>';
-
-        var temp = document.createElement("div");
-        temp.innerHTML = toggleableSectionHTML;
-        if (this.pageType == "search")
-        {
-            postTable.insertBefore(temp.firstChild, postTable.lastChild);
+            ignoredSection.style.marginTop = '10px';
         }
         else
         {
-            // Move one element past where we want to insert the toggleable section
-            for (var i = 0; i < 2; i++)
-            {
-                postTable = postTable.nextSibling;
-                while (postTable.nodeType != 1)
-                {
-                    postTable = postTable.nextSibling;
-                }
-            }
-            postTable.parentNode.insertBefore(temp.firstChild, postTable);
+            footer = document.querySelector(".breadcrumb.bottom");
         }
+        footer.parentNode.insertBefore(ignoredSection, footer);
 
         var control = document.getElementById("toggle_ignored_topics");
         control.addEventListener("click", function(e)
         {
-            var ignoredTopics = document.getElementById("ignored_topics");
+            var ignoredTopics = document.getElementById("ignored_topics_table");
             ignoredTopics.style.display = (ignoredTopics.style.display == "none" ? "" : "none");
-            if (TIL.hasClass(this.parentNode, "collapsed"))
-            {
-                TIL.removeClass(this.parentNode, "collapsed");
-            }
-            else
-            {
-                TIL.addClass(this.parentNode, "collapsed");
-            }
+            document.getElementById("ignored_topics").classList.toggle("collapsed")
             e.preventDefault();
         }, false);
     },
@@ -418,7 +361,13 @@ var TIL =
                 newlyIgnoredTopic = false;
             }
 
-            var ignoreControl = e.target;
+            var cell = e.target;
+            if (cell.nodeName.toLowerCase() == 'img')
+            {
+                cell = cell.parentNode
+            }
+            var icon = cell.firstElementChild;
+
             if (newlyIgnoredTopic)
             {
                 // Add this topic's id to the front of the ignore list
@@ -426,24 +375,22 @@ var TIL =
 
                 // Move the table row Node which contains this topic's details
                 // to the Ignored Topics section.
-                var row = ignoreControl;
-                do
+                document.getElementById("TILInsertTarget").appendChild(cell.parentNode);
+
+                // Update the topic ignoring icon appropriately
+                icon.src = TIL.tickIcon;
+                icon.title = "Stop ignoring this topic";
+
+                if (TIL.pageType == 'search')
                 {
-                    row = row.parentNode;
-                } while (row.nodeName.toLowerCase() != "tr")
-                document.getElementById("TILInsertTarget").appendChild(row);
-
-                // Update the topic ignoring control appropriately
-                ignoreControl.src = TIL.plusIconDataURI;
-                ignoreControl.title = "Click to stop ignoring this topic";
-
-                TIL.fixTopicStriping();
+                    TIL.fixTopicStriping();
+                }
             }
             else
             {
                 // Show that this topic won't be ignored on next page load
-                ignoreControl.src = TIL.crossIconDataURI;
-                ignoreControl.title = "Click to re-ignore this topic";
+                icon.src = TIL.trashIcon;
+                icon.title = "Re-ignore this topic";
             }
 
             // Store the updated ignored topic list
@@ -453,20 +400,21 @@ var TIL =
 
     registerControls: function()
     {
-        var controls = document.getElementById("section_links");
+        var homeItem = document.getElementById("nav_home");
 
         // Only insert this link for GM - Chrome will use a page action
-        if (isGM && controls)
+        if (isGM && homeItem)
         {
-            controls.insertBefore(this.createLinkControl("Topic Ignore List",
+            homeItem.parentNode.insertBefore(this.createLinkControl("Topic Ignore List",
                                                          TIL.UI.show.bind(TIL.UI)),
-                                  controls.firstChild);
+                                             homeItem);
         }
     },
 
     createLinkControl: function(name, handler)
     {
         var li = document.createElement("li");
+        li.className = "right"
         var a = document.createElement("a");
         a.href = "#";
         a.appendChild(document.createTextNode(name));
@@ -492,19 +440,6 @@ TIL.Config =
         GM_setValue("ignoredTopics", ignoredTopics.join(","));
     },
 
-    getIgnoredFolderNames: function()
-    {
-        var ignoredFolders = GM_getValue("ignoredFolders");
-        var ignoredFolderNames = (ignoredFolders ? ignoredFolders.split(",") : []);
-        ignoredFolderNames.sort();
-        return ignoredFolderNames;
-    },
-
-    setIgnoredFolderNames: function(ignoredFolderNames)
-    {
-        GM_setValue("ignoredFolders", ignoredFolderNames.join(","));
-    },
-
     getCollapseIgnoredTopics: function()
     {
         return this._getBooleanConfig("collapseIgnoredTopics", true);
@@ -513,31 +448,6 @@ TIL.Config =
     setCollapseIgnoredTopics: function(collapseIgnoredTopics)
     {
         GM_setValue("collapseIgnoredTopics", collapseIgnoredTopics);
-    },
-
-    /**
-     * Retrieves a list of available folders from the forum jump menu, if
-     * available, otherwise returns and empty Array.
-     */
-    getFolderNamesFromCurrentPage: function()
-    {
-        var folders = [];
-        var jumpForm = document.forms.namedItem("forum_jump");
-        if (jumpForm)
-        {
-            var folderNameRegex = /-- (.+)$/;
-            var folderSelect = jumpForm.elements.namedItem("showforum");
-            for (var i = 0; i < folderSelect.options.length; i++)
-            {
-                var matches = folderSelect.options[i].text.match(folderNameRegex);
-                if (matches != null)
-                {
-                    folders.push(matches[1]);
-                }
-            }
-        }
-        folders.sort();
-        return folders;
     },
 
     _getBooleanConfig: function(configName, defaultValue)
@@ -557,7 +467,7 @@ TIL.Config =
  */
 TIL.UI =
 {
-    PREFS_HTML: "data:text/html;charset=utf-8;base64,PCFET0NUWVBFIGh0bWwgUFVCTElDICItLy9XM0MvL0RURCBIVE1MIDQuMDEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvVFIvaHRtbDQvc3RyaWN0LmR0ZCI%2BDQo8aHRtbCBsYW5nPSJlbiI%2BDQo8aGVhZD4NCiAgPHRpdGxlPlVzZXJzY3JpcHQgUHJlZmVyZW5jZXM8L3RpdGxlPg0KICA8bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD1VVEYtOCI%2BDQogIDxtZXRhIG5hbWU9IkF1dGhvciIgY29udGVudD0iSm9uYXRoYW4gQnVjaGFuYW4iPg0KICA8bWV0YSBuYW1lPSJDb3B5cmlnaHQiIGNvbnRlbnQ9IiZjb3B5OyAyMDA2LCBKb25hdGhhbiBCdWNoYW5hbiI%2BDQogIDxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI%2BDQogIGh0bWwgeyBiYWNrZ3JvdW5kLWNvbG9yOiB0cmFuc3BhcmVudCB9DQogIGJvZHkgeyBtYXJnaW46MDsgcGFkZGluZzowOyBiYWNrZ3JvdW5kLWNvbG9yOiB0cmFuc3BhcmVudDsgY29sb3I6ICMxQzI4Mzc7IGZvbnQ6IDEzcHggYXJpYWwsdmVyZGFuYSx0YWhvbWEsc2Fucy1zZXJpZjsgd2lkdGg6IDcyMHB4OyBtYXJnaW46IDAgYXV0bzsgfQ0KICAubW9kdWxlIHsgbWFyZ2luLWJvdHRvbTogNXB4OyB9DQogIC5tb2R1bGUgaDIsIC5tb2R1bGUgY2FwdGlvbiB7DQogICAgLW1vei1ib3JkZXItcmFkaXVzOjVweCA1cHggMCAwOw0KICAgIGZvbnQtc2l6ZToxNHB4Ow0KICAgIGZvbnQtd2VpZ2h0Om5vcm1hbDsNCiAgICBtYXJnaW46MCAhaW1wb3J0YW50Ow0KICAgIG92ZXJmbG93OmhpZGRlbjsNCiAgICBwYWRkaW5nOjhweCAhaW1wb3J0YW50Ow0KICAgIGJhY2tncm91bmQ6dXJsKCJodHRwOi8vd3d3LnJsbG11a2ZvcnVtLmNvbS9wdWJsaWMvc3R5bGVfaW1hZ2VzL21hc3Rlci9ncmFkaWVudF9iZy5wbmciKSByZXBlYXQteCBzY3JvbGwgbGVmdCA1MCUgIzFEMzY1MjsNCiAgICBjb2xvcjojRkZGRkZGOw0KICB9DQoNCiAgLmZvcm0tcm93IHsgb3ZlcmZsb3c6IGhpZGRlbjsgcGFkZGluZzogOHB4IDEycHg7IGZvbnQtc2l6ZTogMTFweDsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNlZWU7IGJvcmRlci1yaWdodDogMXB4IHNvbGlkICNlZWU7IGJhY2tncm91bmQtY29sb3I6ICNmZmY7fQ0KICAuZm9ybS1yb3cgaW1nLCAuZm9ybS1yb3cgaW5wdXQgeyB2ZXJ0aWNhbC1hbGlnbjogbWlkZGxlOyB9DQogIC5mb3JtLWZpZWxkIHsgZmxvYXQ6IGxlZnQ7IH0NCiAgLmFsaWduZWQgbGFiZWwgeyBwYWRkaW5nOiAwIDFlbSAzcHggMDsgZmxvYXQ6IGxlZnQ7IHdpZHRoOiA4ZW07IH0NCiAgLmNoZWNrYm94LXJvdyBsYWJlbCB7IHBhZGRpbmc6IDA7IGZsb2F0OiBub25lOyB3aWR0aDogYXV0bzsgYmFja2dyb3VuZC1jb2xvcjogI2ZmZjsgfQ0KICAuc3VibWl0LXJvdyB7IHBhZGRpbmc6IDhweCAxMnB4OyB0ZXh0LWFsaWduOiByaWdodDsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNlZWU7IGJvcmRlci1yaWdodDogMXB4IHNvbGlkICNlZWU7IGJhY2tncm91bmQtY29sb3I6ICNmZmY7IH0NCg0KICB1bCB7IG1hcmdpbjogMDsgcGFkZGluZzogMCAwIDAgMS41ZW07IGxpbmUtaGVpZ2h0OiAxLjVlbTsgfQ0KICBsaSB7IG1hcmdpbjogMDsgcGFkZGluZzogMDsgfQ0KDQogIHNwYW4uY29udHJvbCB7IHRleHQtZGVjb3JhdGlvbjogdW5kZXJsaW5lOyBjdXJzb3I6IHBvaW50ZXI7IGNvbG9yOiAjMDBmOyB9DQoNCiAgLnNlbGVjdG9yIHsgd2lkdGg6NTgwcHg7IGZsb2F0OmxlZnQ7IH0NCiAgLnNlbGVjdG9yIHNlbGVjdCB7IHdpZHRoOjI3MHB4OyBoZWlnaHQ6MTcuMmVtOyB9DQogIC5zZWxlY3Rvci1hdmFpbGFibGUsIC5zZWxlY3Rvci1jaG9zZW4geyBmbG9hdDpsZWZ0OyB3aWR0aDoyNzBweDsgdGV4dC1hbGlnbjpjZW50ZXI7IG1hcmdpbi1ib3R0b206NXB4OyB9DQogIC5zZWxlY3Rvci1hdmFpbGFibGUgaDIsIC5zZWxlY3Rvci1jaG9zZW4gaDIgeyBib3JkZXI6MXB4IHNvbGlkICNjY2M7IH0NCiAgLnNlbGVjdG9yIC5zZWxlY3Rvci1hdmFpbGFibGUgaDIgeyBiYWNrZ3JvdW5kOndoaXRlIHVybCgiZGF0YTppbWFnZS9naWY7YmFzZTY0LFIwbEdPRGxoRVFBZkFNUUFBUGYzOSUyQjN0N2VmbjUlMkJycTZ2MzklMkZmcjYlMkJ2RHc4UFB6OCUyRlB6OHVUazVQSHg4ZUhoNGU3dTd2djclMkIlMkZqNCUyQk9qbzZQWDE5ZUxpNHZ6OCUyRk96czdQbjUlMkJmYjI5dWJtNXY3JTJCJTJGdiUyRiUyRiUyRndBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFDSDVCQUFBQUFBQUxBQUFBQUFSQUI4QUFBV09JQ2FPWkdtZWFLcXViT3U2Vnl6UGRHM1hSSzd2ZkM3OXdLRHcxeWdhajhoaVljbHNPcGVVcUhSS2pUcXUyS3oyQ3VoNnYlMkJCdVpVd3VtOGVRdEhyTlRoJTJGZThMajhnRkRZNyUyRmk4M2NEdiUyQiUyRjk4RElLRGhJV0NBWWlKaW91SUU0NlBrSkdPQTVTVmxwZVVENXFibkoyYUFxQ2hvcU9nRnFhbnFLbW1DYXl0cnElMkJzRWJLenRMV3lDN2k1dXJ1NElRQTciKSBib3R0b20gbGVmdCByZXBlYXQteDsgY29sb3I6IzY2NjsgfQ0KICAuc2VsZWN0b3IgLnNlbGVjdG9yLWF2YWlsYWJsZSBpbnB1dCB7IHdpZHRoOjIzMHB4OyB9DQogIC5zZWxlY3RvciB1bC5zZWxlY3Rvci1jaG9vc2VyIHsgZmxvYXQ6bGVmdDsgd2lkdGg6MjJweDsgaGVpZ2h0OjUwcHg7IGJhY2tncm91bmQ6dXJsKCJkYXRhOmltYWdlL2dpZjtiYXNlNjQsUjBsR09EbGhGZ0F2QUxNQUFQNyUyQiUyRnUlMkZ2NyUyRkh4OGYzOSUyRmZmMzklMkZQejglMkZqNCUyQlBMeTh2RHc4UG41JTJCZiUyRiUyRiUyRiUyQjd1N2dBQUFBQUFBQUFBQUFBQUFDSDVCQUFBQUFBQUxBQUFBQUFXQUM4QUFBUjBVTWtKVEJGcmlXTEElMkZCUVJaQ1FaRUI2b0RFZnBrc2NBRHNockw0Zzh0YmQ5VElSZWo2QUFqSVMyQUNDQjdGbWF0d3ZVaGpoT3I5aXNkc3Z0ZXIlMkZnc0hoTUxwdlA2TFI2YmJabUE1anRobHRnYmp2dXFWSVJ6QklsY1ZNQ0tTczFVRGt6UEVJeEtrVWlOeWVFalJWU0doeVNFaEVBT3clM0QlM0QiKSB0b3AgY2VudGVyIG5vLXJlcGVhdDsgbWFyZ2luOjhlbSAzcHggMCAzcHg7IHBhZGRpbmc6MDsgfQ0KICAuc2VsZWN0b3ItY2hvb3NlciBsaSB7IG1hcmdpbjowOyBwYWRkaW5nOjNweDsgbGlzdC1zdHlsZS10eXBlOm5vbmU7IH0NCiAgLnNlbGVjdG9yIHNlbGVjdCB7IG1hcmdpbi1ib3R0b206NXB4OyBtYXJnaW4tdG9wOjA7IH0NCiAgLnNlbGVjdG9yLWFkZCwgLnNlbGVjdG9yLXJlbW92ZSB7IHdpZHRoOjE2cHg7IGhlaWdodDoxNnB4OyBkaXNwbGF5OmJsb2NrOyB0ZXh0LWluZGVudDotMzAwMHB4OyB9DQogIC5zZWxlY3Rvci1hZGQgeyBjdXJzb3I6IHBvaW50ZXI7IGJhY2tncm91bmQ6dXJsKCJkYXRhOmltYWdlL2dpZjtiYXNlNjQsUjBsR09EbGhFQUFRQU9aWkFJYXB6WW1zejQlMkJ2MGRyazclMkJmdTlaYTAxYU85MTN1Z3hvV295MzZpeDdUSjMlMkJydzklMkJEcDhyalA1b09teVpxNTE0Q2t5ZjMlMkIlMkZ1N3olMkJMUEkzb2lxelk2dHpwT3kwdSUyRjAlMkJLckMybiUyQmp5YjdRNVlPbnk1bTMxWUNqeUklMkJ2MEgyaXglMkJIcTg1YTExTG5ONHFPOTJhTyUyQjJwMjUxbnloeDRLbHlwbTQxNlclMkYyN2JONUo2NjFuJTJCa3liTEs0JTJGUDIlMkJvS215bjJoeDVxNDF2SDElMkJiYkszMzZqeUpHeDBvNnUwT3Z3OXJiTjVhUyUyRjI0U296TUxVNTl6bThZcXN6cGk0MW55aHhvJTJCdzBZQ2t5cGUxMUllcHpPenk5NSUyQjgyT252OXFLJTJCMjU2NzE3VE01Sld6MU1mWTZhWEIzSkt4MDMlMkJqeUxISDNiUEw0NWUyMVoyNjJLekc0Sk96MDRlcXphWEEzSTZ2MGZYNCUyQiUyRiUyRiUyRiUyRndBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ0g1QkFFQUFGa0FMQUFBQUFBUUFCQUFBQWU3Z0ZtQ1dRd1lEaGxCSFFZRGc0TVJFd2hIU1EwTk9Fd1VUeGVOVHhZdFVKJTJCZ1VCdyUyRkVvSUtIbE9wcVNxcVV5RlBXVVFRT1ZhMXRVWkx0bFlJQXpNMlVzREJCRmc3d1JZR0ZVMEZCU2tMemk1WVdCckxTZ2NKQXRnajBkdlJJdGd3Q1FIaVNOemJSZUltRlRvQUFFSUU3ekxSSmV3QUJ3b3ZWZm42SUZnciUyQmhzR2JueTRRckFnRHhJRnI3QmdwQUFCbFljUFkwQ2tnbW5Ra3lGUk1tck0yT05BS1VHUElBRHg4ZUFCaWhvbk1qVVNWTWdCRFNjSkZqVUtCQUE3IikgdG9wIGNlbnRlciBuby1yZXBlYXQ7IG1hcmdpbi1ib3R0b206MnB4OyB9DQogIC5zZWxlY3Rvci1yZW1vdmUgeyBjdXJzb3I6IHBvaW50ZXI7IGJhY2tncm91bmQ6dXJsKCJkYXRhOmltYWdlL2dpZjtiYXNlNjQsUjBsR09EbGhFQUFRQU5VJTJCQU1IQndieTh2UFB6ODdTMHRMR3hzYzdXM2EyMXZiQ3hzc1hGeGJ1N3UlMkJEZzRQRHc4TEs3eGN6TXpMbTV1Zno5JTJGYXl3dGJLeXN1YnE3OVhjNDhQRHc3NiUyQnZzdkx5OHJLeXZuNSUyQmJLN3hLNndzcSUyQjN2OTNkM2VqczhNTEN3dHJhMnQ3ZTN1dnI2OCUyRlB6N096czdPOHhyYTJ0c2ZIeCUyRmo0JTJCTzN0N2VUcDdmSHg4Y0RBd0slMkJ4c3ZiMjl0TFMwdUxtNjlqWTJNM056Ykc2dzdpNHVOdmIyOG5KeWM3T3pyVzF0ZFhWMWNqSXlMZTN0OFRFeEwlMkIlMkZ2JTJGWDQlMkIlMkYlMkYlMkYlMkZ3QUFBQ0g1QkFFQUFENEFMQUFBQUFBUUFCQUFBQWFyUUolMkZRTjlsb1NqcVdvVEFjUGpJT0VVZWhBTGtTc2s1VFJxRjV2MTRUUVNKazhIQm85Q2VOMjhsOHFWdk1ScmNwQkhYNnJFQ3E1UDQ1SEQwcWdIOEFCaEE4QUlzd1BUMG5BcEVYQUNzRUJ3R1lPSTQ5R0pzNW1CRUhNNk1JbTUyT0NLTVJFQU0zcmhTT0xRdXpQSzRFREFNNnVqcWxLTHU2TndZdkl6ekZ4UlloeHNVRFRBd09POURRT2RFN1dFTXlDVFhhMjlvVlkwNFpOeDRYRFEwV096cFpUVUpGR3EwSFMwMUJBRHMlM0QiKSB0b3AgY2VudGVyIG5vLXJlcGVhdDsgfQ0KICBzcGFuLnNlbGVjdG9yLWNsZWFyYWxsIHsgY3Vyc29yOiBwb2ludGVyOyBkaXNwbGF5OmJsb2NrOyB3aWR0aDo2ZW07IHRleHQtYWxpZ246bGVmdDsgbWFyZ2luLWxlZnQ6YXV0bzsgbWFyZ2luLXJpZ2h0OmF1dG87IGZvbnQtd2VpZ2h0OmJvbGQ7IGNvbG9yOiM2NjY7ICBwYWRkaW5nOjNweCAwIDNweCAxOHB4OyB9DQogIHNwYW4uc2VsZWN0b3ItY2xlYXJhbGw6aG92ZXIgeyBjb2xvcjojMDM2OyB9DQogIHNwYW4uc2VsZWN0b3ItY2xlYXJhbGwgeyBiYWNrZ3JvdW5kOnVybCgiZGF0YTppbWFnZS9naWY7YmFzZTY0LFIwbEdPRGxoRUFBUUFOVXNBTlhWMWN2THk3JTJCJTJGdjZ1cnE2eXNyTHk4dk5uWjJkYlcxdDdlM3FhbXByS3lzc1RFeEtpb3FNbkp5YXFxcXJHeHNlVGs1SzZ1cnJtNXVjN096cW1wcWFXbHBiT3pzOUhSMGQzZDNlJTJGdjclMkZmMzklMkJmbjU5cmEydGpZMk0lMkZQejc2JTJCdnRMUzB2YjI5dGZYMTlUVTFMcTZ1dkx5OHJ1N3U3YTJ0dVBqNDZlbnA4Zkh4JTJGajQlMkJQJTJGJTJGJTJGd0FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUNINUJBRUFBQ3dBTEFBQUFBQVFBQkFBQUFhQVFKWndTQ3dhajBnV3BFQ2hGQ0RJbFNyU09Cd2FFZFhLcUpJQXZpSUVRS0lxb2dhQk5LQ0VTZzlRUk5OSklPQm9WaGo2eVVSTVBVZ2JLNElkRmhZUEtYME9IeG1DS3lNREF3NklReVlWS1FRSWdpQXBLUlY4UXlnSko2TVhJUWFqQ1hCRUtnb3FyaDRHckdWRlVnUUxFeE1MQkZwSUtDWU1EQ2FxU2NURlJVRUFPdyUzRCUzRCIpIGxlZnQgY2VudGVyIG5vLXJlcGVhdDsgfQ0KICA8L3N0eWxlPg0KICA8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCI%2BDQogIHZhciBTZWxlY3RzID0NCiAgew0KICAgICAgbW92ZVNlbGVjdGVkT3B0aW9uczogZnVuY3Rpb24oZnJvbSwgdG8pDQogICAgICB7DQogICAgICAgICAgdmFyIGZyb20gPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZChmcm9tKQ0KICAgICAgICAgIHZhciB0byA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKHRvKTsNCiAgICAgICAgICB2YXIgb3B0aW9uOw0KDQogICAgICAgICAgZm9yICh2YXIgaSA9IGZyb20ub3B0aW9ucy5sZW5ndGggLSAxOyBpID49IDA7IGktLSkNCiAgICAgICAgICB7DQogICAgICAgICAgICAgIG9wdGlvbiA9IGZyb20ub3B0aW9uc1tpXTsNCiAgICAgICAgICAgICAgaWYgKG9wdGlvbi5zZWxlY3RlZCA9PSB0cnVlKQ0KICAgICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgICB0by5hcHBlbmRDaGlsZChvcHRpb24pOw0KICAgICAgICAgICAgICB9DQogICAgICAgICAgfQ0KICAgICAgfSwNCg0KICAgICAgbW92ZUFsbE9wdGlvbnM6IGZ1bmN0aW9uKGZyb20sIHRvKQ0KICAgICAgew0KICAgICAgICAgIHZhciBmcm9tID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoZnJvbSk7DQogICAgICAgICAgdmFyIHRvID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQodG8pOw0KICAgICAgICAgIHZhciBvcHRpb247DQoNCiAgICAgICAgICBmb3IgKHZhciBpID0gZnJvbS5vcHRpb25zLmxlbmd0aCAtIDE7IGkgPj0gMDsgaS0tKQ0KICAgICAgICAgIHsNCiAgICAgICAgICAgICAgb3B0aW9uID0gZnJvbS5vcHRpb25zW2ldOw0KICAgICAgICAgICAgICB0by5hcHBlbmRDaGlsZChvcHRpb24pOw0KICAgICAgICAgIH0NCiAgICAgIH0NCiAgfTsNCiAgPC9zY3JpcHQ%2BDQoNCjwvaGVhZD4NCjxib2R5Pg0KDQo8Zm9ybSBuYW1lPSJwcmVmZXJlbmNlcyIgaWQ9InByZWZlcmVuY2VzIiBjbGFzcz0iYWxpZ25lZCI%2BDQogIDxkaXYgY2xhc3M9Im1vZHVsZSI%2BDQogICAgPGgyPlRvcGljIElnbm9yZSBMaXN0IFByZWZlcmVuY2VzPC9oMj4NCiAgICA8ZGl2IGNsYXNzPSJmb3JtLXJvdyI%2BDQogICAgICA8bGFiZWw%2BRm9sZGVyczo8L2xhYmVsPg0KICAgICAgPGRpdiBjbGFzcz0ic2VsZWN0b3IiPg0KICAgICAgICA8ZGl2IGNsYXNzPSJzZWxlY3Rvci1hdmFpbGFibGUiPg0KICAgICAgICAgIDxoMj5BdmFpbGFibGUgRm9sZGVyczwvaDI%2BDQogICAgICAgICAgPHNlbGVjdCBpZD0iYWxsX2ZvbGRlcnMiIGNsYXNzPSJmaWx0ZXJlZCIgbmFtZT0iYWxsX2ZvbGRlcnMiIHNpemU9IjE1IiBtdWx0aXBsZT0ibXVsdGlwbGUiPg0KICAgICAgICAgIDwvc2VsZWN0Pg0KICAgICAgICA8L2Rpdj4NCg0KICAgICAgICA8dWwgY2xhc3M9InNlbGVjdG9yLWNob29zZXIiPg0KICAgICAgICAgIDxsaT48c3BhbiBjbGFzcz0ic2VsZWN0b3ItYWRkIiBvbmNsaWNrPSdTZWxlY3RzLm1vdmVTZWxlY3RlZE9wdGlvbnMoImFsbF9mb2xkZXJzIiwiaWdub3JlZF9mb2xkZXJzIik7Jz5BZGQ8L3NwYW4%2BPC9saT4NCiAgICAgICAgICA8bGk%2BPHNwYW4gY2xhc3M9InNlbGVjdG9yLXJlbW92ZSIgb25jbGljaz0nU2VsZWN0cy5tb3ZlU2VsZWN0ZWRPcHRpb25zKCJpZ25vcmVkX2ZvbGRlcnMiLCJhbGxfZm9sZGVycyIpOyc%2BUmVtb3ZlPC9zcGFuPjwvbGk%2BDQogICAgICAgIDwvdWw%2BDQoNCiAgICAgICAgPGRpdiBjbGFzcz0ic2VsZWN0b3ItY2hvc2VuIj4NCiAgICAgICAgICA8aDI%2BSWdub3JlZCBGb2xkZXJzPC9oMj4NCiAgICAgICAgICA8c2VsZWN0IGNsYXNzPSJmaWx0ZXJlZCIgbmFtZT0iaWdub3JlZF9mb2xkZXJzIiBzaXplPSIxNSIgbXVsdGlwbGU9Im11bHRpcGxlIiBpZD0iaWdub3JlZF9mb2xkZXJzIj4NCiAgICAgICAgICA8L3NlbGVjdD4NCiAgICAgICAgICA8c3BhbiBjbGFzcz0ic2VsZWN0b3ItY2xlYXJhbGwiIG9uY2xpY2s9J1NlbGVjdHMubW92ZUFsbE9wdGlvbnMoImlnbm9yZWRfZm9sZGVycyIsICJhbGxfZm9sZGVycyIpOyc%2BQ2xlYXIgYWxsPC9zcGFuPg0KICAgICAgICA8L2Rpdj4NCiAgICAgIDwvZGl2Pg0KICAgIDwvZGl2Pg0KICAgIDxkaXYgY2xhc3M9ImZvcm0tcm93IGNoZWNrYm94LXJvdyI%2BDQogICAgICA8bGFiZWwgZm9yPSJjb2xsYXBzZV9pZ25vcmVkX3RvcGljcyI%2BPGlucHV0IHR5cGU9ImNoZWNrYm94IiBuYW1lPSJjb2xsYXBzZV9pZ25vcmVkX3RvcGljcyIgaWQ9ImNvbGxhcHNlX2lnbm9yZWRfdG9waWNzIj4gQ29sbGFwc2UgSWdub3JlZCBUb3BpY3Mgc2VjdGlvbiBieSBkZWZhdWx0PC9sYWJlbD4NCiAgICA8L2Rpdj4NCiAgPC9kaXY%2BDQoNCiAgPGRpdiBjbGFzcz0ibW9kdWxlIj4NCiAgICA8ZGl2IGNsYXNzPSJzdWJtaXQtcm93Ij4NCiAgICAgIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJDbG9zZSIgbmFtZT0iY2xvc2VfYnV0dG9uIiBpZD0iY2xvc2VfYnV0dG9uIj4NCiAgICAgIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJTYXZlIFByZWZlcmVuY2VzIiBuYW1lPSJzYXZlX2J1dHRvbiIgaWQ9InNhdmVfYnV0dG9uIj4NCiAgICA8L2Rpdj4NCiAgPC9kaXY%2BDQo8L2Zvcm0%2BDQoNCjwvYm9keT4NCjwvaHRtbD4%3D",
+    PREFS_HTML: "data:text/html;charset=utf-8;base64,PCFET0NUWVBFIGh0bWw%2BDQo8aHRtbCBsYW5nPSJlbiI%2BDQo8aGVhZD4NCiAgPHRpdGxlPlRvcGljIElnbm9yZSBMaXN0IFByZWZlcmVuY2VzPC90aXRsZT4NCiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4NCiAgaHRtbCB7IGJhY2tncm91bmQtY29sb3I6IHRyYW5zcGFyZW50IH0NCiAgYm9keSB7IG1hcmdpbjowOyBwYWRkaW5nOjA7IGJhY2tncm91bmQtY29sb3I6IHRyYW5zcGFyZW50OyBjb2xvcjogIzFDMjgzNzsgZm9udDogMTNweCBhcmlhbCx2ZXJkYW5hLHRhaG9tYSxzYW5zLXNlcmlmOyB3aWR0aDogNzIwcHg7IG1hcmdpbjogMCBhdXRvOyB9DQogIC5tb2R1bGUgeyBtYXJnaW4tYm90dG9tOiA1cHg7IH0NCiAgLm1vZHVsZSBoMiwgLm1vZHVsZSBjYXB0aW9uIHsNCiAgICAtbW96LWJvcmRlci1yYWRpdXM6NXB4IDVweCAwIDA7DQogICAgZm9udC1zaXplOjE0cHg7DQogICAgZm9udC13ZWlnaHQ6bm9ybWFsOw0KICAgIG1hcmdpbjowICFpbXBvcnRhbnQ7DQogICAgb3ZlcmZsb3c6aGlkZGVuOw0KICAgIHBhZGRpbmc6OHB4ICFpbXBvcnRhbnQ7DQogICAgYmFja2dyb3VuZDp1cmwoImh0dHA6Ly93d3cucmxsbXVrZm9ydW0uY29tL3B1YmxpYy9zdHlsZV9pbWFnZXMvbWFzdGVyL2dyYWRpZW50X2JnLnBuZyIpIHJlcGVhdC14IHNjcm9sbCBsZWZ0IDUwJSAjMUQzNjUyOw0KICAgIGNvbG9yOiNGRkZGRkY7DQogIH0NCg0KICAuZm9ybS1yb3cgeyBvdmVyZmxvdzogaGlkZGVuOyBwYWRkaW5nOiA4cHggMTJweDsgZm9udC1zaXplOiAxMXB4OyBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2VlZTsgYm9yZGVyLXJpZ2h0OiAxcHggc29saWQgI2VlZTsgYmFja2dyb3VuZC1jb2xvcjogI2ZmZjt9DQogIC5mb3JtLXJvdyBpbWcsIC5mb3JtLXJvdyBpbnB1dCB7IHZlcnRpY2FsLWFsaWduOiBtaWRkbGU7IH0NCiAgLmZvcm0tZmllbGQgeyBmbG9hdDogbGVmdDsgfQ0KICAuYWxpZ25lZCBsYWJlbCB7IHBhZGRpbmc6IDAgMWVtIDNweCAwOyBmbG9hdDogbGVmdDsgd2lkdGg6IDhlbTsgfQ0KICAuY2hlY2tib3gtcm93IGxhYmVsIHsgcGFkZGluZzogMDsgZmxvYXQ6IG5vbmU7IHdpZHRoOiBhdXRvOyBiYWNrZ3JvdW5kLWNvbG9yOiAjZmZmOyB9DQogIC5zdWJtaXQtcm93IHsgcGFkZGluZzogOHB4IDEycHg7IHRleHQtYWxpZ246IHJpZ2h0OyBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2VlZTsgYm9yZGVyLXJpZ2h0OiAxcHggc29saWQgI2VlZTsgYmFja2dyb3VuZC1jb2xvcjogI2ZmZjsgfQ0KDQogIHVsIHsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwIDAgMCAxLjVlbTsgbGluZS1oZWlnaHQ6IDEuNWVtOyB9DQogIGxpIHsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwOyB9DQoNCiAgc3Bhbi5jb250cm9sIHsgdGV4dC1kZWNvcmF0aW9uOiB1bmRlcmxpbmU7IGN1cnNvcjogcG9pbnRlcjsgY29sb3I6ICMwMGY7IH0NCg0KICA8L3N0eWxlPg0KPC9oZWFkPg0KPGJvZHk%2BDQoNCjxmb3JtIG5hbWU9InByZWZlcmVuY2VzIiBpZD0icHJlZmVyZW5jZXMiIGNsYXNzPSJhbGlnbmVkIj4NCiAgPGRpdiBjbGFzcz0ibW9kdWxlIj4NCiAgICA8aDI%2BVG9waWMgSWdub3JlIExpc3QgUHJlZmVyZW5jZXM8L2gyPg0KICAgIDxkaXYgY2xhc3M9ImZvcm0tcm93IGNoZWNrYm94LXJvdyI%2BDQogICAgICA8bGFiZWwgZm9yPSJjb2xsYXBzZV9pZ25vcmVkX3RvcGljcyI%2BPGlucHV0IHR5cGU9ImNoZWNrYm94IiBuYW1lPSJjb2xsYXBzZV9pZ25vcmVkX3RvcGljcyIgaWQ9ImNvbGxhcHNlX2lnbm9yZWRfdG9waWNzIj4gQ29sbGFwc2UgSWdub3JlZCBUb3BpY3Mgc2VjdGlvbiBieSBkZWZhdWx0PC9sYWJlbD4NCiAgICA8L2Rpdj4NCiAgPC9kaXY%2BDQoNCiAgPGRpdiBjbGFzcz0ibW9kdWxlIj4NCiAgICA8ZGl2IGNsYXNzPSJzdWJtaXQtcm93Ij4NCiAgICAgIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJDbG9zZSIgbmFtZT0iY2xvc2VfYnV0dG9uIiBpZD0iY2xvc2VfYnV0dG9uIj4NCiAgICAgIDxpbnB1dCB0eXBlPSJidXR0b24iIHZhbHVlPSJTYXZlIFByZWZlcmVuY2VzIiBuYW1lPSJzYXZlX2J1dHRvbiIgaWQ9InNhdmVfYnV0dG9uIj4NCiAgICA8L2Rpdj4NCiAgPC9kaXY%2BDQo8L2Zvcm0%2BDQoNCjwvYm9keT4NCjwvaHRtbD4%3D",
 
     // This will only be called when running on GreaseMonkey, as the Chrome
     // extension will use a page action to display the preferences dialogue.
@@ -627,12 +537,6 @@ TIL.UI =
         var form = this.getDocument().forms.namedItem("preferences");
 
         // Set up form state
-        if (folderNames == null || folderNames.length == 0)
-        {
-            folderNames = TIL.Config.getFolderNamesFromCurrentPage();
-        }
-        var ignoredFolders = TIL.Config.getIgnoredFolderNames();
-        this.populateFolderSelects(folderNames, ignoredFolders);
         form.elements.namedItem("collapse_ignored_topics").checked = TIL.Config.getCollapseIgnoredTopics();
 
         // Set up event handlers
@@ -640,37 +544,10 @@ TIL.UI =
         form.elements.namedItem("save_button").addEventListener("click", this.saveConfigurationHandler.bind(this), false);
     },
 
-    populateFolderSelects: function(folders, ignoredFolders)
-    {
-        var document = this.getDocument();
-        var form = document.forms.namedItem("preferences");
-        folders.forEach(function(folderName)
-        {
-            var option = document.createElement("option");
-            option.text = folderName;
-            if (ignoredFolders.indexOf(folderName) == -1)
-            {
-                form.elements.namedItem("all_folders").appendChild(option);
-            }
-        });
-        ignoredFolders.forEach(function(folderName)
-        {
-            var option = document.createElement("option");
-            option.text = folderName;
-            form.elements.namedItem("ignored_folders").appendChild(option);
-        });
-    },
 
     saveConfigurationHandler: function()
     {
-        var ignoredFolders = [];
         var form = this.getDocument().forms.namedItem("preferences");
-        var select = form.elements.namedItem("ignored_folders");
-        for (var i = 0; i < select.options.length; i++)
-        {
-            ignoredFolders.push(select.options[i].text);
-        }
-        TIL.Config.setIgnoredFolderNames(ignoredFolders);
         TIL.Config.setCollapseIgnoredTopics(form.elements.namedItem("collapse_ignored_topics").checked);
         this.hide();
     }
