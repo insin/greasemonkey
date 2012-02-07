@@ -1,22 +1,11 @@
 <html>
   <script>
-var folderNames = [];
-
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse)
 {
     if (request.type == "getprefs")
     {
-        // Initialise the list of folder names for use on the preferences
-        // dialogue if not yet initialised and they are available.
-        if (folderNames.length == 0 &&
-            request.folderNames.length > 0)
-        {
-            folderNames = request.folderNames;
-        }
-
         sendResponse({
             ignoredTopics: localStorage.ignoredTopics,
-            ignoredFolders: localStorage.ignoredFolders,
             collapseIgnoredTopics: localStorage.collapseIgnoredTopics
         });
     }
