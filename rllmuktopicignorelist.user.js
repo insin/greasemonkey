@@ -258,16 +258,18 @@ var TIL =
 
         var ignoredSection = document.createElement("div");
         ignoredSection.innerHTML = toggleableSectionHTML;
-        var footer = document.getElementById("forum_footer")
-        if (footer)
+        ignoredSection.style.marginTop = '10px';
+
+        if (this.pageType == 'search')
         {
-            ignoredSection.style.marginTop = '10px';
+            ignoredSection.style.clear = "both";
+            document.querySelector("div.ipsLayout_content").appendChild(ignoredSection);
         }
         else
         {
-            footer = document.querySelector(".breadcrumb.bottom");
+            var footer = document.getElementById("forum_footer")
+            footer.parentNode.insertBefore(ignoredSection, footer);
         }
-        footer.parentNode.insertBefore(ignoredSection, footer);
 
         var control = document.getElementById("toggle_ignored_topics");
         control.addEventListener("click", function(e)
