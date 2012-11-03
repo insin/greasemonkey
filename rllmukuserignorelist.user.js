@@ -4,10 +4,14 @@
 // @description Implements a user ignore list which removes all traces of the users on the list and optionally removes topics created by ignored users and posts which quote ignored users. The ignore list can be synchronised with your Manage Ignored Users settings when viewing that page.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
+// @grant       GM_getValue
+// @grant       GM_setValue
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2012-11-03 Updated XPATH to account for username markup changes.
+ *            Added @grant metadata.
  * 2012-01-31 Updated XPATHs and parentNode counts for the IPB 3.2 upgrade.
  *            Fixed synchronising list from the "Users You're Ignoring" page.
  * 2010-12-14 Minor tweaks to make the script work in Chrome with IPB3.
@@ -181,7 +185,7 @@ var UIL =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//span[@class='author vcard']/a",
+                "//span[@class='author vcard']/a/span[@itemprop='name']",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -280,7 +284,7 @@ var UIL =
         // Get a list of username links
         var nodes =
             document.evaluate(
-                "//div[@id='topic_summary']/div/div/h3/a[1]",
+                "//div[@id='topic_summary']/div/div/h3/a[1]/span[@itemprop='name']",
                 document,
                 null,
                 XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
@@ -347,12 +351,12 @@ var UIL =
         if (window.location.href.indexOf("module=search") != -1)
         {
             var topicStarterXPathQuery =
-                "//span[@class='desc lighter blend_links toggle_notify_off']/a[1]";
+                "//span[@class='desc lighter blend_links toggle_notify_off']/a[1]/span[@itemprop='name']";
         }
         else
         {
             var topicStarterXPathQuery =
-                "//span[@class='desc lighter blend_links']/a[1]";
+                "//span[@class='desc lighter blend_links']/a[1]/span[@itemprop='name']";
         }
 
         var topicStarterLinkNodes =
@@ -368,7 +372,7 @@ var UIL =
             var topicStarterLinkNode = topicStarterLinkNodes.snapshotItem(i);
             if (ignoredUsers.indexOf(topicStarterLinkNode.innerHTML) != -1)
             {
-                var row = topicStarterLinkNode.parentNode.parentNode.parentNode;
+                var row = topicStarterLinkNode.parentNode.parentNode.parentNode.parentNode;
                 row.parentNode.removeChild(row);
                 itemsRemoved++;
             }
@@ -396,14 +400,6 @@ var UIL =
         s.style.position = "fixed";
         s.style.top = "0px";
         s.style.right = "0px";
-        if (isGM)
-        {
-            s.style.MozBorderRadiusBottomleft = "1em";
-        }
-        else
-        {
-            s.style.webkitBorderBottomLeftRadius = "1em";
-        }
         s.style.backgroundColor = "red";
         s.style.color = "white";
         s.style.padding = "3px 6px 5px 8px";
