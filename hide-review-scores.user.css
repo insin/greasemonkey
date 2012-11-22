@@ -49,3 +49,14 @@
   /* Header dropdowns */
   .release-review img[src*="generic/astar"] { display: none !important; }
 }
+
+@-moz-document domain("polygon.com") {
+  a.review_score,
+  div.review_score,
+  div.review_scores,
+  em.score { display: none !important; }
+  div.polygon-comments-with-sidebar-comments,
+  a.comment_count,
+  #homepage_hero .meta .header small,
+  a[href^="/search?type=Comment"] { display: none !important; }
+}
