@@ -83,3 +83,15 @@
   span.livefyre-commentcount,
   .story_stats a.icon { display: none !important; }
 }
+
+@-moz-document domain("1up.com") {
+  img[src*="/reviewratings/"],
+  #featuresIndex td.aligncenter,
+  #game1upReviews div h4,
+  #gameUserReviews div h4,
+  #gameInfo div.section h4 { display: none !important; }
+  #my1upcontent,
+  #userComment,
+  td.countComment,
+  span.countComment { display: none !important; }
+}
