@@ -60,3 +60,9 @@
   #homepage_hero .meta .header small,
   a[href^="/search?type=Comment"] { display: none !important; }
 }
+
+@-moz-document domain("joystiq.com") {
+  div img[src$="stars.jpg"] { display: none !important; }
+  div.comment-count,
+  #livefyre { display: none !important; }
+}
