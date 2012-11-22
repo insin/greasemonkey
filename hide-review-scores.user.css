@@ -1,0 +1,50 @@
+/**
+ * Hides game review scores and comments.
+ * For automatic updates, install from: http://userstyles.org/styles/78871/hide-game-review-scores-comments
+ * Submit changes by editing: https://github.com/insin/greasemonkey/blob/master/hide-review-scores.user.css
+ */
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@-moz-document domain("metacritic.com") {
+  html:before { position: absolute; top: 40%; left: 0; right: 0; text-align: center; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 1em 0; content: "Clementine will remember this..."; font-size: 46px;}
+  body { display: none !important; }
+}
+
+@-moz-document domain("eurogamer.net") {
+  /* Article listings */
+  a.comment-count { display: none !important; }
+  /* Review pages */
+  section.conclusion,
+  a.scoring-policy,
+  p.comment-count,
+  #reply-box,
+  #new-comments { display: none !important; }
+  /* Game DB listings */
+  a[href="games?order=score"],
+  span.score { display: none !important; }
+}
+
+@-moz-document domain("edge-online.com") {
+  /* Review pages */
+  a.post-header-comment,
+  #verdictBox,
+  #comment-window { display: none !important; }
+  /* Listing pages */
+  th.score, td.score { display: none !important; }
+}
+
+@-moz-document domain("rockpapershotgun.com") {
+  /* ✔ */
+}
+
+@-moz-document domain("giantbomb.com") {
+  /* Review pages */
+  img.score.rating,
+  span.score,
+  td.score,
+  span.avg,
+  div.comment-links { display: none !important; }
+  /* Header dropdowns */
+  .release-review img[src*="generic/astar"] { display: none !important; }
+}
