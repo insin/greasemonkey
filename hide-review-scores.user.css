@@ -66,3 +66,20 @@
   div.comment-count,
   #livefyre { display: none !important; }
 }
+
+@-moz-document domain("gamespot.com") {
+  div.metaDataMainReview,
+  div.reviewScores,
+  div.reviewScoreSummaryModule,
+  span.gameScoreContainer,
+  span.gameScore,
+  td.score a,
+  div.reviewScore,
+  div.score,
+  /* One aggressive body-scrub */
+  li.metaDataReview { display: none !important; }
+  #livefyre,
+  #powered_by_livefyre,
+  span.livefyre-commentcount,
+  .story_stats a.icon { display: none !important; }
+}
