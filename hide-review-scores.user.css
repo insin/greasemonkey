@@ -64,7 +64,7 @@
 @-moz-document domain("joystiq.com") {
   div img[src$="stars.jpg"] { display: none !important; }
   div.comment-count,
-  #livefyre { display: none !important; }
+  #lf_comment_stream { display: none !important; }
 }
 
 @-moz-document domain("gamespot.com") {
