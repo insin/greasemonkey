@@ -8,6 +8,7 @@
 
 /* Changelog
  * ---------
+ * 2013-03-25 URL for unread posts changed.
  * 2012-02-02 Updated for IPB 3.2.
  * 2011-05-18 Changed forum URL check so session IDs won't throw it off.
  * 2010-08-02 Updated for IPB3.
@@ -41,5 +42,5 @@ for (var i = 0; i < topicLinkNodes.snapshotLength; i++) {
     href = href.substring(0, lastSlash + 1)
   }
 
-  topicLinkNode.href = href + 'unread/'
+  topicLinkNode.href = href + '?view=getnewpost'
 }
