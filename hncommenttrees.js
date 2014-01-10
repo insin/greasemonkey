@@ -20,8 +20,8 @@ function Comment(index, el) {
   toggleEl.addEventListener('click', this.onToggle.bind(this))
 
   var bar = el.querySelector('td.default > div')
-  bar.appendChild(document.createTextNode(' | '))
-  bar.appendChild(toggleEl)
+  bar.insertBefore(document.createTextNode(' '), bar.firstChild)
+  bar.insertBefore(toggleEl, bar.firstChild)
 
   this.els = {
     wrapper: el
