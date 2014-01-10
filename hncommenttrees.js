@@ -1,5 +1,6 @@
 // ==UserScript==
-// @name        Hide/show HN comment trees
+// @name        HN Comment Trees
+// @description Adds Reddit-style [–]/[+] widgets to hide/show comment trees in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @include     https://news.ycombinator.com/item*
 // @version     1
