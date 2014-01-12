@@ -3,7 +3,7 @@
 // @description Adds Reddit-style [–]/[+] widgets to hide/show comment trees in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @include     https://news.ycombinator.com/item*
-// @version     1
+// @version     2
 // ==/UserScript==
 var comments = []
 
@@ -26,6 +26,7 @@ function Comment(index, el) {
 
   this.els = {
     wrapper: el
+  , bar: bar
   , vote: el.querySelector('td[valign="top"] > center')
   , comment: el.querySelector('span.comment')
   , reply: el.querySelector('span.comment + p')
@@ -39,7 +40,15 @@ Comment.prototype.onToggle = function() {
   if (this.els.reply) toggle(this.els.reply, show)
   if (this.els.vote) this.els.vote.style.visibility = (show ? 'visible' : 'hidden')
   this.els.toggle.textContent = (show ? '[–]' : '[+]')
-  this.toggleChildren(show)
+  var childCount = this.toggleChildren(show)
+  if (show) {
+    this.els.bar.removeChild(this.els.bar.lastChild)
+  }
+  else {
+    this.els.bar.appendChild(document.createTextNode(
+      ' | (' + childCount + ' child' + (childCount != 1 ? 'ren' : '') + ')'
+    ))
+  }
 }
 
 Comment.prototype.toggleChildren = function(show) {
@@ -48,6 +57,7 @@ Comment.prototype.toggleChildren = function(show) {
     if (child.indent <= this.indent) break
     toggle(child.els.wrapper, show)
   }
+  return (i - this.index - 1)
 }
 
 var commentNodes = document.evaluate('/html/body/center/table/tbody/tr[3]/td/table[2]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
