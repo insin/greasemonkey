@@ -3,7 +3,8 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/item*
-// @version     3
+// @match       https://news.ycombinator.com/x?fnid*
+// @version     4
 // ==/UserScript==
 
 // ==================================================================== Utils ==
@@ -212,7 +213,7 @@ HNComment.prototype._updateDOMCollapsed = function(show) {
 
 // =============================================================== State Init ==
 
-function getData(name, defaultValue, coerce) {
+function getData(name, defaultValue) {
   var value = localStorage[name]
   return (typeof value != 'undefined' ? value : defaultValue)
 }
@@ -222,20 +223,26 @@ function setData(name, value) {
 }
 
 var comments = []
-var newCommentCount = 0
 var itemId = location.search.split('=').pop()
-var maxCommentIdKey = itemId + ':maxCommentId'
-var lastVisitKey = itemId + ':lastVisit'
+var maxCommentIdKey = itemId + ':mc'
+var lastVisitKey = itemId + ':lv'
 var lastMaxCommentId = Number(getData(maxCommentIdKey, '0'))
 var lastVisit = getData(lastVisitKey, null)
 if (typeof lastVisit != 'undefined') {
   lastVisit = new Date(Number(lastVisit))
 }
 var maxCommentId = -1
+var newCommentCount = 0
 
-var commentNodes = document.evaluate('/html/body/center/table/tbody/tr[3]/td/table[2]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+var commentNodes = document.evaluate('/html/body/center/table/tbody/tr[3]/td/table[last()]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
 for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
-  var comment = new HNComment(commentNodes.snapshotItem(i), i, lastMaxCommentId)
+  var wrapper = commentNodes.snapshotItem(i)
+  if (wrapper.style.height == '10px') {
+    // This is a spacer row prior to a "more" link, so we've reached the end of
+    // the comments.
+    break
+  }
+  var comment = new HNComment(wrapper, i, lastMaxCommentId)
   if (comment.id > maxCommentId) {
     maxCommentId = comment.id
   }
@@ -274,22 +281,30 @@ function onCollapseThreadsWithoutNewComments() {
 }
 
 if (lastVisit && newCommentCount > 0) {
-  document.forms[0].appendChild($el('div', null
-  , $el('p', null
-    , (newCommentCount + ' new comment' + pluralise(newCommentCount) +
-       ' since ' + lastVisit.toLocaleString())
-    )
-  , $el('div', null
-    , $checkboxControl('highlight new comments', onHighlightNewComments)
-    , ' '
-    , $checkboxControl('collapse threads without new comments',
-                       onCollapseThreadsWithoutNewComments)
-    )
-  ))
+  var el = (document.querySelector('form[action="/r"]') ||
+            document.querySelector('td.subtext'))
+  if (el) {
+    el.appendChild($el('div', null
+    , $el('p', null
+      , (newCommentCount + ' new comment' + pluralise(newCommentCount) +
+         ' since ' + lastVisit.toLocaleString())
+      )
+    , $el('div', null
+      , $checkboxControl('highlight new comments', onHighlightNewComments)
+      , ' '
+      , $checkboxControl('collapse threads without new comments',
+                         onCollapseThreadsWithoutNewComments)
+      )
+    ))
+  }
 }
 comments.forEach(function(comment) {
   comment.addToggleControlToDOM()
 })
 
-setData(maxCommentIdKey, ''+maxCommentId)
-setData(lastVisitKey, ''+(new Date().getTime()))
+if (location.href.indexOf('item?id') != -1) {
+  if (maxCommentId > lastMaxCommentId) {
+    setData(maxCommentIdKey, ''+maxCommentId)
+  }
+  setData(lastVisitKey, ''+(new Date().getTime()))
+}
