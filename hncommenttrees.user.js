@@ -117,8 +117,6 @@ function HNComment(el, index, lastMaxCommentId) {
     , onClick: function() { this.toggleCollapsed() }.bind(this)
     }, '[–]')
   }
-
-  this.addToggleControlToDOM()
 }
 
 HNComment.prototype.addToggleControlToDOM = function() {
@@ -158,7 +156,7 @@ HNComment.prototype.hasNewComments = function() {
     var foundNewComment = false
     for (var i = 0, l = children.length; i < l; i++) {
       if (children[i].isNew) {
-        foundNewComment= true
+        foundNewComment = true
         break
       }
     }
@@ -273,11 +271,13 @@ function onHighlightNewComments() {
 
 function onCollapseThreadsWithoutNewComments() {
   var collapse = this.checked
-  comments.forEach(function(comment) {
-    if (!comment.isNew && comment.isTopLevel && !comment.hasNewComments()) {
+  for (var i = 0, l = comments.length; i < l; i++) {
+    var comment = comments[i]
+    if (!comment.isNew && !comment.hasNewComments()) {
       comment.toggleCollapsed(collapse)
+      i += comment.children().length
     }
-  })
+  }
 }
 
 if (lastVisit && newCommentCount > 0) {
