@@ -150,7 +150,7 @@ HNLink.prototype.initDOM = function() {
     var newCommentCount = this.commentCount - this.lastCommentCount
     this.els.subtext.appendChild($el('span', null
     , ' ('
-    , $el('a', {href: '/item?id=' + this.id + '&shownew', style: {fontWeight: 'bold'}}
+    , $el('a', {href: '/item?shownew&id=' + this.id, style: {fontWeight: 'bold'}}
       , newCommentCount
       , ' new'
       )
@@ -353,7 +353,7 @@ function commentPage() {
     }
   }
 
-  var highlightNew = (location.search.indexOf('&shownew') != -1)
+  var highlightNew = (location.search.indexOf('?shownew') != -1)
 
   comments.forEach(function(comment) {
     comment.addToggleControlToDOM()
