@@ -2,10 +2,18 @@
 // @name        HN Comment Trees
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
+// @match       https://news.ycombinator.com/
+// @match       https://news.ycombinator.com/ask
+// @match       https://news.ycombinator.com/news
+// @match       https://news.ycombinator.com/newest
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     4
+// @version     5
 // ==/UserScript==
+
+var COMMENT_COUNT_KEY = ':cc'
+var LAST_VISIT_TIME_KEY = ':lv'
+var MAX_COMMENT_ID_KEY = ':mc'
 
 // ==================================================================== Utils ==
 
@@ -84,6 +92,73 @@ function $el(tagName, attributes, children) {
   return element
 }
 
+/**
+ * Creates a labeled checkbox control.
+ */
+function $checkboxControl(labelText, defaultChecked, eventListener) {
+  return $el('label', {}
+  , $el('input', {type: 'checkbox', checked: defaultChecked, onClick: eventListener})
+  , ' '
+  , labelText
+  )
+}
+
+/**
+ * Gets data from localStorage.
+ */
+function getData(name, defaultValue) {
+  var value = localStorage[name]
+  return (typeof value != 'undefined' ? value : defaultValue)
+}
+
+/**
+ * Sets data im localStorage.
+ */
+function setData(name, value) {
+  localStorage[name] = value
+}
+
+// =================================================================== HNLink ==
+
+function HNLink(linkEl, metaEl) {
+  var subtext = metaEl.querySelector('td.subtext')
+  var commentLink = subtext.querySelector('a[href^=item]')
+
+  // Job posts can't have comments
+  this.isCommentable = (commentLink != null)
+  if (!this.isCommentable) { return }
+  this.id = commentLink.href.split('=').pop()
+  this.commentCount = (/^\d+/.test(commentLink.textContent)
+                       ? Number(commentLink.textContent.split(' ').shift())
+                       : null)
+  this.lastCommentCount = null
+
+  this.els = {
+    link: linkEl
+  , meta: metaEl
+  , subtext: subtext
+  }
+}
+
+HNLink.prototype.initDOM = function() {
+  if (!this.isCommentable) {
+    return
+  }
+  if (this.commentCount != null &&
+      this.lastCommentCount != null &&
+      this.commentCount > this.lastCommentCount) {
+    var newCommentCount = this.commentCount - this.lastCommentCount
+    this.els.subtext.appendChild($el('span', null
+    , ' ('
+    , $el('a', {href: '/item?id=' + this.id + '&shownew', style: {fontWeight: 'bold'}}
+      , newCommentCount
+      , ' new'
+      )
+    , ')'
+    ))
+  }
+}
+
 // ================================================================ HNComment ==
 
 /**
@@ -152,7 +227,7 @@ HNComment.prototype.children = function() {
  */
 HNComment.prototype.hasNewComments = function() {
   if (typeof this._hasNewComments == 'undefined') {
-    var children = this.children()
+    var children = this.children(comments)
     var foundNewComment = false
     for (var i = 0, l = children.length; i < l; i++) {
       if (children[i].isNew) {
@@ -209,102 +284,124 @@ HNComment.prototype._updateDOMCollapsed = function(show) {
   }
 }
 
-// =============================================================== State Init ==
-
-function getData(name, defaultValue) {
-  var value = localStorage[name]
-  return (typeof value != 'undefined' ? value : defaultValue)
-}
-
-function setData(name, value) {
-  localStorage[name] = value
-}
-
+var links = []
 var comments = []
-var itemId = location.search.split('=').pop()
-var maxCommentIdKey = itemId + ':mc'
-var lastVisitKey = itemId + ':lv'
-var lastMaxCommentId = Number(getData(maxCommentIdKey, '0'))
-var lastVisit = getData(lastVisitKey, null)
-if (typeof lastVisit != 'undefined') {
-  lastVisit = new Date(Number(lastVisit))
-}
-var maxCommentId = -1
-var newCommentCount = 0
 
-var commentNodes = document.evaluate('/html/body/center/table/tbody/tr[3]/td/table[last()]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
-for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
-  var wrapper = commentNodes.snapshotItem(i)
-  if (wrapper.style.height == '10px') {
-    // This is a spacer row prior to a "more" link, so we've reached the end of
-    // the comments.
-    break
-  }
-  var comment = new HNComment(wrapper, i, lastMaxCommentId)
-  if (comment.id > maxCommentId) {
-    maxCommentId = comment.id
-  }
-  if (comment.isNew) {
-    newCommentCount++
-  }
-  comments.push(comment)
-}
-
-// ================================================================= DOM Init ==
-
-function $checkboxControl(labelText, eventListener) {
-  return $el('label', {}
-  , $el('input', {type: 'checkbox', onClick: eventListener})
-  , ' '
-  , labelText
-  )
-}
-
-function onHighlightNewComments() {
-  var highlight = this.checked
-  comments.forEach(function(comment) {
-    if (comment.isNew) {
-      comment.toggleHighlighted(highlight)
+function linkPage() {
+  var linkNodes = document.evaluate('//center/table/tbody/tr[3]/td/table/tbody/tr[not(@style) and not(position()=last())]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  for (var i = 0, l = linkNodes.snapshotLength; i < l; i += 2) {
+    var linkNode = linkNodes.snapshotItem(i)
+    var metaNode = linkNodes.snapshotItem(i + 1)
+    var link = new HNLink(linkNode, metaNode)
+    var lastCommentCount = getData(link.id + COMMENT_COUNT_KEY, null)
+    if (lastCommentCount != null) {
+      link.lastCommentCount = Number(lastCommentCount)
     }
+    links.push(link)
+  }
+
+  links.forEach(function(link) {
+    link.initDOM()
   })
 }
 
-function onCollapseThreadsWithoutNewComments() {
-  var collapse = this.checked
-  for (var i = 0, l = comments.length; i < l; i++) {
-    var comment = comments[i]
-    if (!comment.isNew && !comment.hasNewComments()) {
-      comment.toggleCollapsed(collapse)
-      i += comment.children().length
+function commentPage() {
+  var itemId = location.search.split('=').pop()
+  var maxCommentIdKey = itemId + MAX_COMMENT_ID_KEY
+  var lastVisitKey = itemId + LAST_VISIT_TIME_KEY
+  var lastMaxCommentId = Number(getData(maxCommentIdKey, '0'))
+  var lastVisit = getData(lastVisitKey, null)
+  if (typeof lastVisit != 'undefined') {
+    lastVisit = new Date(Number(lastVisit))
+  }
+  var maxCommentId = -1
+  var newCommentCount = 0
+
+  var commentNodes = document.evaluate('//center/table/tbody/tr[3]/td/table[last()]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
+    var wrapper = commentNodes.snapshotItem(i)
+    if (wrapper.style.height == '10px') {
+      // This is a spacer row prior to a "more" link, so we've reached the end of
+      // the comments.
+      break
+    }
+    var comment = new HNComment(wrapper, i, lastMaxCommentId)
+    if (comment.id > maxCommentId) {
+      maxCommentId = comment.id
+    }
+    if (comment.isNew) {
+      newCommentCount++
+    }
+    comments.push(comment)
+  }
+
+  function highlightNewComments(highlight) {
+    comments.forEach(function(comment) {
+      if (comment.isNew) {
+        comment.toggleHighlighted(highlight)
+      }
+    })
+  }
+
+  function collapseThreadsWithoutNewComments(collapse) {
+    for (var i = 0, l = comments.length; i < l; i++) {
+      var comment = comments[i]
+      if (!comment.isNew && !comment.hasNewComments(comments)) {
+        comment.toggleCollapsed(collapse)
+        i += comment.children(comments).length
+      }
+    }
+  }
+
+  var highlightNew = (location.search.indexOf('&shownew') != -1)
+
+  comments.forEach(function(comment) {
+    comment.addToggleControlToDOM()
+  })
+  if (lastVisit && newCommentCount > 0) {
+    var el = (document.querySelector('form[action="/r"]') ||
+              document.querySelector('td.subtext'))
+    if (el) {
+      el.appendChild($el('div', null
+      , $el('p', null
+        , (newCommentCount + ' new comment' + pluralise(newCommentCount) +
+           ' since ' + lastVisit.toLocaleString())
+        )
+      , $el('div', null
+        , $checkboxControl('highlight new comments', highlightNew, function() {
+            highlightNewComments(this.checked)
+          })
+        , ' '
+        , $checkboxControl('collapse threads without new comments', highlightNew, function() {
+            collapseThreadsWithoutNewComments(this.checked)
+          })
+        )
+      ))
+    }
+
+    if (highlightNew) {
+      highlightNewComments(true)
+      collapseThreadsWithoutNewComments(true)
+    }
+  }
+
+  if (location.pathname == '/item') {
+    if (maxCommentId > lastMaxCommentId) {
+      setData(maxCommentIdKey, ''+maxCommentId)
+    }
+    setData(lastVisitKey, ''+(new Date().getTime()))
+    var commentsLink = document.querySelector('td.subtext a[href^=item]')
+    if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
+      var commentCount = commentsLink.textContent.split(' ').shift()
+      setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(' ').shift())
     }
   }
 }
 
-if (lastVisit && newCommentCount > 0) {
-  var el = (document.querySelector('form[action="/r"]') ||
-            document.querySelector('td.subtext'))
-  if (el) {
-    el.appendChild($el('div', null
-    , $el('p', null
-      , (newCommentCount + ' new comment' + pluralise(newCommentCount) +
-         ' since ' + lastVisit.toLocaleString())
-      )
-    , $el('div', null
-      , $checkboxControl('highlight new comments', onHighlightNewComments)
-      , ' '
-      , $checkboxControl('collapse threads without new comments',
-                         onCollapseThreadsWithoutNewComments)
-      )
-    ))
-  }
-}
-comments.forEach(function(comment) {
-  comment.addToggleControlToDOM()
-})
-
-if (location.href.indexOf('item?id') != -1) {
-  if (maxCommentId > lastMaxCommentId) {
-    setData(maxCommentIdKey, ''+maxCommentId)
-  }
-  setData(lastVisitKey, ''+(new Date().getTime()))
-}
+void function() {
+  var path = location.pathname.slice(1)
+  if (/^(?:$|ask|news|newest)/.test(path)) { return linkPage }
+  if (/^item/.test(path)) { return commentPage }
+  if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
+  return function() { console.log('One does not simply ' + path + ' into HN Comment Trees')}
+}()()
