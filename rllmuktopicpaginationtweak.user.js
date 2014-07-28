@@ -1,9 +1,10 @@
 // ==UserScript==
-// @name           Rllmuk Topic Pagination Tweak
-// @namespace      https://github.com/insin/greasemonkey
-// @description    Changes topic pagination links from 1-2-3-99 format to 1-97-98-99 format
-// @include        http://rllmukforum.com/*
-// @include        http://www.rllmukforum.com/*
+// @name        Rllmuk Topic Pagination Tweak
+// @namespace   https://github.com/insin/greasemonkey
+// @description Changes topic pagination links from 1-2-3-99 format to 1-97-98-99 format
+// @include     http://rllmukforum.com/*
+// @include     http://www.rllmukforum.com/*
+// @version     2.0
 // ==/UserScript==
 
 /* Changelog

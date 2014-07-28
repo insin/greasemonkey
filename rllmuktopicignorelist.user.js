@@ -1,13 +1,17 @@
 // ==UserScript==
 // @name        Rllmuk Topic Ignore List
-// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
+// @namespace   https://github.com/insin/greasemonkey
 // @description Implements a topic ignore list, sending selected topics to an unobtrusive Ignored Topics section at the foot of topic listing pages.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
+// @grant       GM_getValue
+// @grant       GM_setValue
+// @version     2.0
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2014-07-28 Added @grant metadata for Greasemonkey 2.0
  * 2012-02-07 Updated for IPB 3.2.
  * 2011-02-09 Updated Ignored Topics toggling, as Chrome can't make use of
  *            JavaScript in the content page.
@@ -98,11 +102,6 @@ if (!isGM)
             cachedSettings[name] = value;
             chrome.extension.sendRequest({type: "setpref", name: name, value: value});
         }
-    }
-
-    if (typeof(unsafeWindow) == "undefined")
-    {
-        unsafeWindow = window;
     }
 }
 

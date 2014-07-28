@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name        Rllmuk Topic Links View New Post
-// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
+// @namespace   https://github.com/insin/greasemonkey
 // @description Alters topic links on topic listing pages to always view the latest post
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
+// @version     2.0
 // ==/UserScript==
 
 /* Changelog

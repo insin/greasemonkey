@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name        Rllmuk User Ignore List
-// @namespace   http://www.jonathanbuchanan.plus.com/repos/greasemonkey/
+// @namespace   https://github.com/insin/greasemonkey
 // @description Implements a user ignore list which removes all traces of the users on the list and optionally removes topics created by ignored users and posts which quote ignored users. The ignore list can be synchronised with your Manage Ignored Users settings when viewing that page.
 // @include     http://www.rllmukforum.com/*
 // @include     http://rllmukforum.com/*
 // @grant       GM_getValue
 // @grant       GM_setValue
+// @version     2.0
 // ==/UserScript==
 
 /* Changelog
