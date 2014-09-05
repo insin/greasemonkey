@@ -3,12 +3,12 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/
-// @match       https://news.ycombinator.com/ask
-// @match       https://news.ycombinator.com/news
-// @match       https://news.ycombinator.com/newest
+// @match       https://news.ycombinator.com/ask*
+// @match       https://news.ycombinator.com/news*
+// @match       https://news.ycombinator.com/newest*
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     5
+// @version     6
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
