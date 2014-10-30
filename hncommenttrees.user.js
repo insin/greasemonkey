@@ -8,7 +8,7 @@
 // @match       https://news.ycombinator.com/newest*
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     6
+// @version     7
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -170,7 +170,7 @@ HNLink.prototype.initDOM = function() {
 function HNComment(el, index, lastMaxCommentId) {
   var topBar = el.querySelector('td.default > div')
   var comment = el.querySelector('span.comment')
-  var isDeleted = (comment.firstChild.nodeValue == '[deleted]')
+  var isDeleted = /^\[(?:deleted|flagkilled)\]$/.test(comment.firstChild.nodeValue)
 
   this.id = (!isDeleted ? Number(topBar.querySelector('a[href^=item]').href.split('=').pop()) : -1)
   this.index = index
