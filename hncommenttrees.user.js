@@ -9,7 +9,7 @@
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/saved*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     8
+// @version     9
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -123,7 +123,7 @@ function setData(name, value) {
 
 function HNLink(linkEl, metaEl) {
   var subtext = metaEl.querySelector('td.subtext')
-  var commentLink = subtext.querySelector('a[href^=item]')
+  var commentLink = subtext.querySelector('a[href^=item]:last-child')
 
   // Job posts can't have comments
   this.isCommentable = (commentLink != null)
@@ -391,7 +391,7 @@ function commentPage() {
       setData(maxCommentIdKey, ''+maxCommentId)
     }
     setData(lastVisitKey, ''+(new Date().getTime()))
-    var commentsLink = document.querySelector('td.subtext a[href^=item]')
+    var commentsLink = document.querySelector('td.subtext a[href^=item]:last-child')
     if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
       var commentCount = commentsLink.textContent.split(' ').shift()
       setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(' ').shift())
