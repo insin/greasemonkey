@@ -9,7 +9,7 @@
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/saved*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     9
+// @version     10
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -359,6 +359,15 @@ function commentPage() {
   comments.forEach(function(comment) {
     comment.addToggleControlToDOM()
   })
+
+  var commentCount
+  if (location.pathname == '/item') {
+    var commentsLink = document.querySelector('td.subtext a[href^=item]:last-child')
+    if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
+      commentCount = commentsLink.textContent.split(' ').shift()
+    }
+  }
+
   if (lastVisit && newCommentCount > 0) {
     var el = (document.querySelector('form[action="/r"]') ||
               document.querySelector('td.subtext'))
@@ -391,9 +400,7 @@ function commentPage() {
       setData(maxCommentIdKey, ''+maxCommentId)
     }
     setData(lastVisitKey, ''+(new Date().getTime()))
-    var commentsLink = document.querySelector('td.subtext a[href^=item]:last-child')
-    if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
-      var commentCount = commentsLink.textContent.split(' ').shift()
+    if (commentCount) {
       setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(' ').shift())
     }
   }
