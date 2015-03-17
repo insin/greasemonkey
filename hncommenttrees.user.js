@@ -3,13 +3,16 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/
+// @match       https://news.ycombinator.com/active*
 // @match       https://news.ycombinator.com/ask*
+// @match       https://news.ycombinator.com/best*
 // @match       https://news.ycombinator.com/news*
 // @match       https://news.ycombinator.com/newest*
+// @match       https://news.ycombinator.com/noobstories*
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/saved*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     10
+// @version     11
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -408,8 +411,8 @@ function commentPage() {
 
 void function() {
   var path = location.pathname.slice(1)
-  if (/^(?:$|ask|news|newest|saved)/.test(path)) { return linkPage }
+  if (/^(?:$|active|ask|best|news|newest|noobstories|saved)/.test(path)) { return linkPage }
   if (/^item/.test(path)) { return commentPage }
   if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
-  return function() { console.log('One does not simply ' + path + ' into HN Comment Trees')}
+  return function() { console.log('One does not simply "/' + path + '" into HN Comment Trees')}
 }()()
