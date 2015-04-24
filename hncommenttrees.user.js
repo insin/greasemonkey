@@ -11,8 +11,9 @@
 // @match       https://news.ycombinator.com/noobstories*
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/saved*
+// @match       https://news.ycombinator.com/submitted*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     13
+// @version     14
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -411,7 +412,7 @@ function commentPage() {
 
 void function() {
   var path = location.pathname.slice(1)
-  if (/^(?:$|active|ask|best|news|newest|noobstories|saved)/.test(path)) { return linkPage }
+  if (/^(?:$|active|ask|best|news|newest|noobstories|saved|submitted)/.test(path)) { return linkPage }
   if (/^item/.test(path)) { return commentPage }
   if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
   return function() { console.log('One does not simply "/' + path + '" into HN Comment Trees')}
