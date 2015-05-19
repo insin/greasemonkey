@@ -13,7 +13,7 @@
 // @match       https://news.ycombinator.com/saved*
 // @match       https://news.ycombinator.com/submitted*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     14
+// @version     15
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -191,7 +191,7 @@ function HNComment(el, index, lastMaxCommentId) {
   , topBar: topBar
   , vote: el.querySelector('td[valign="top"] > center')
   , comment: comment
-  , reply: el.querySelector('span.comment + p')
+  , reply: el.querySelector('span.comment + div.reply')
   , toggleControl: $el('span', {
       style: {cursor: 'pointer'}
     , onClick: function() { this.toggleCollapsed() }.bind(this)
