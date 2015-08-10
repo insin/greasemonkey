@@ -11,9 +11,10 @@
 // @match       https://news.ycombinator.com/noobstories*
 // @match       https://news.ycombinator.com/item*
 // @match       https://news.ycombinator.com/saved*
+// @match       https://news.ycombinator.com/show*
 // @match       https://news.ycombinator.com/submitted*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     16
+// @version     17
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -293,10 +294,10 @@ var links = []
 var comments = []
 
 function linkPage() {
-  var linkNodes = document.evaluate('//center/table/tbody/tr[3]/td/table/tbody/tr[not(@style) and not(position()=last())]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  var linkNodes = document.evaluate('//tr[@class="athing"]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
   for (var i = 0, l = linkNodes.snapshotLength; i < l; i += 2) {
     var linkNode = linkNodes.snapshotItem(i)
-    var metaNode = linkNodes.snapshotItem(i + 1)
+    var metaNode = linkNode.nextElementSibling
     var link = new HNLink(linkNode, metaNode)
     var lastCommentCount = getData(link.id + COMMENT_COUNT_KEY, null)
     if (lastCommentCount != null) {
@@ -412,7 +413,7 @@ function commentPage() {
 
 void function() {
   var path = location.pathname.slice(1)
-  if (/^(?:$|active|ask|best|news|newest|noobstories|saved|submitted)/.test(path)) { return linkPage }
+  if (/^(?:$|active|ask|best|news|newest|noobstories|saved|show|submitted)/.test(path)) { return linkPage }
   if (/^item/.test(path)) { return commentPage }
   if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
   return function() { console.log('One does not simply "/' + path + '" into HN Comment Trees')}
