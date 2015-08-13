@@ -14,7 +14,7 @@
 // @match       https://news.ycombinator.com/show*
 // @match       https://news.ycombinator.com/submitted*
 // @match       https://news.ycombinator.com/x?fnid*
-// @version     17
+// @version     18
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -295,7 +295,7 @@ var comments = []
 
 function linkPage() {
   var linkNodes = document.evaluate('//tr[@class="athing"]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
-  for (var i = 0, l = linkNodes.snapshotLength; i < l; i += 2) {
+  for (var i = 0, l = linkNodes.snapshotLength; i < l; i++) {
     var linkNode = linkNodes.snapshotItem(i)
     var metaNode = linkNode.nextElementSibling
     var link = new HNLink(linkNode, metaNode)
