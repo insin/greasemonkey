@@ -6,11 +6,12 @@
 // @include     http://rllmukforum.com/*
 // @grant       GM_getValue
 // @grant       GM_setValue
-// @version     2.0
+// @version     3
 // ==/UserScript==
 
 /* Changelog
  * ---------
+ * 2015-12-11 Fixed removal of posts quoting ignored users.
  * 2012-11-03 Updated XPATH to account for username markup changes.
  *            Added @grant metadata.
  * 2012-01-31 Updated XPATHs and parentNode counts for the IPB 3.2 upgrade.
@@ -106,21 +107,6 @@ if (!isGM)
     }
 }
 
-String.prototype.endsWith = function(s)
-{
-    lastIndex = this.lastIndexOf(s);
-    return (lastIndex != -1 && lastIndex == (this.length - s.length));
-};
-
-Function.prototype.bind = function(object)
-{
-    var __method = this;
-    return function()
-    {
-        __method.apply(object, arguments);
-    }
-};
-
 /**
  * Processing of the current page.
  */
@@ -157,6 +143,26 @@ var UIL =
             pageType = "ignoredUsers";
         }
         return pageType;
+    },
+
+    killQuotes: function(ignoredUsers) {
+      var removed = 0
+
+      // Remove posts containing quotes from ignored users
+      ignoredUsers.forEach(function(ignoredUser) {
+        var selector = 'blockquote[data-author="' + ignoredUser + '"]'
+        Array.prototype.forEach.call(document.querySelectorAll(selector), function(node) {
+          var postNode = node.parentNode.parentNode.parentNode.parentNode;
+          // May have already been hidden due to ignored quoter or
+          // another ignored quotee in the same post.
+          if (postNode.style.display != "none") {
+            postNode.style.display = "none"
+            removed++
+          }
+        })
+      })
+
+      return removed
     },
 
     processPage: function(pageType)
@@ -203,61 +209,9 @@ var UIL =
             }
         }
 
-/*
-        // Now try truncated usernames
-        var nodes =
-            document.evaluate(
-                "//div[@class='popupmenu-item']/strong",
-                document,
-                null,
-                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                null);
-
-        // Remove posts made by ignored usernames
-        for (var i = 0; i < nodes.snapshotLength; i++)
-        {
-            var node = nodes.snapshotItem(i);
-            if (ignoredUsers.indexOf(node.innerHTML) != -1)
-            {
-                node.parentNode.parentNode.parentNode.parentNode.style.display = "none";
-                itemsRemoved++;
-            }
-        }
-*/
-
         if (UIL.Config.getKillQuotes())
         {
-            // Get a list of quote headers
-            var nodes =
-                document.evaluate(
-                    "//p[@class='citation']",
-                    document,
-                    null,
-                    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                    null);
-
-            // Remove posts containing quotes from ignored usernames
-            for (var i = 0; i < nodes.snapshotLength; i++)
-            {
-                var node = nodes.snapshotItem(i)
-                  , text = node.textContent;
-
-                for (var j = 0; j < ignoredUsers.length; j++)
-                {
-                    if (text.indexOf(ignoredUsers[j] + ", on") === 0)
-                    {
-                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
-                        // May have already been hidden due to ignored quoter or
-                        // another ignored quotee in the same post.
-                        if (postNode.style.display != "none")
-                        {
-                            postNode.style.display = "none";
-                            itemsRemoved++;
-                        }
-                        break;
-                    }
-                }
-            }
+            itemsRemoved += UIL.killQuotes(ignoredUsers)
         }
 
         return itemsRemoved;
@@ -305,35 +259,7 @@ var UIL =
 
         if (UIL.Config.getKillQuotes())
         {
-            // Get a list of quote headers
-            var nodes =
-                document.evaluate(
-                    "//p[@class='citation']",
-                    document,
-                    null,
-                    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-                    null);
-
-            // Remove posts containing quotes from ignored usernames
-            for (var i = 0; i < nodes.snapshotLength; i++)
-            {
-                var node = nodes.snapshotItem(i);
-                for (var j = 0; j < ignoredUsers.length; j++)
-                {
-                    if (node.textContent.indexOf(ignoredUsers[j] + ", on") === 0)
-                    {
-                        var postNode = node.parentNode.parentNode.parentNode.parentNode;
-                        // May have already been hidden due to ignored quoter or
-                        // another ignored quotee in the same post.
-                        if (postNode.style.display != "none")
-                        {
-                            postNode.style.display = "none";
-                            itemsRemoved++;
-                        }
-                        break;
-                    }
-                }
-            }
+            itemsRemoved += UIL.killQuotes(ignoredUsers)
         }
 
         return itemsRemoved;
