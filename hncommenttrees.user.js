@@ -2,19 +2,8 @@
 // @name        HN Comment Trees
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
-// @match       https://news.ycombinator.com/
-// @match       https://news.ycombinator.com/active*
-// @match       https://news.ycombinator.com/ask*
-// @match       https://news.ycombinator.com/best*
-// @match       https://news.ycombinator.com/news*
-// @match       https://news.ycombinator.com/newest*
-// @match       https://news.ycombinator.com/noobstories*
-// @match       https://news.ycombinator.com/item*
-// @match       https://news.ycombinator.com/saved*
-// @match       https://news.ycombinator.com/show*
-// @match       https://news.ycombinator.com/submitted*
-// @match       https://news.ycombinator.com/x?fnid*
-// @version     18
+// @match       https://news.ycombinator.com/*
+// @version     19
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -411,10 +400,17 @@ function commentPage() {
   }
 }
 
+// Initialise pagetype-specific enhancments
 void function() {
   var path = location.pathname.slice(1)
   if (/^(?:$|active|ask|best|news|newest|noobstories|saved|show|submitted)/.test(path)) { return linkPage }
   if (/^item/.test(path)) { return commentPage }
   if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
-  return function() { console.log('One does not simply "/' + path + '" into HN Comment Trees')}
+  return function() {}
 }()()
+
+// Always add a "saved stories" link to the top bar
+var userName = document.querySelector('span.pagetop a[href^="user?id"]').textContent
+var logoutLink = document.querySelector('span.pagetop a[href^="logout"]')
+logoutLink.parentNode.insertBefore($el('a', {href: 'saved?id=' + userName}, 'saved stories'), logoutLink)
+logoutLink.parentNode.insertBefore(document.createTextNode(' | '), logoutLink)
