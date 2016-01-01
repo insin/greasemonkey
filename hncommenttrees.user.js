@@ -3,7 +3,7 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @version     19
+// @version     20
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -356,7 +356,7 @@ function commentPage() {
 
   var commentCount
   if (location.pathname == '/item') {
-    var commentsLink = document.querySelector('td.subtext a[href^=item]:last-child')
+    var commentsLink = document.querySelector('td.subtext > a[href^=item]')
     if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
       commentCount = commentsLink.textContent.split(' ').shift()
     }
@@ -409,8 +409,10 @@ void function() {
   return function() {}
 }()()
 
-// Always add a "saved stories" link to the top bar
-var userName = document.querySelector('span.pagetop a[href^="user?id"]').textContent
-var logoutLink = document.querySelector('span.pagetop a[href^="logout"]')
-logoutLink.parentNode.insertBefore($el('a', {href: 'saved?id=' + userName}, 'saved stories'), logoutLink)
-logoutLink.parentNode.insertBefore(document.createTextNode(' | '), logoutLink)
+// Add a "saved" link to the top bar
+if (window.location.pathname !== '/saved') {
+  var userName = document.querySelector('span.pagetop a[href^="user?id"]').textContent
+  var pageTop = document.querySelector('span.pagetop')
+  pageTop.appendChild(document.createTextNode(' | '))
+  pageTop.appendChild($el('a', {href: '/saved?id=' + userName}, 'saved'))
+}
