@@ -3,7 +3,7 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @version     20
+// @version     21
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -117,7 +117,7 @@ function setData(name, value) {
 
 function HNLink(linkEl, metaEl) {
   var subtext = metaEl.querySelector('td.subtext')
-  var commentLink = subtext.querySelector('a[href^=item]:last-child')
+  var commentLink = [...subtext.querySelectorAll('a[href^=item]')].pop()
 
   // Job posts can't have comments
   this.isCommentable = (commentLink != null)
