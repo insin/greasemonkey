@@ -3,7 +3,7 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @version     21
+// @version     22
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -165,7 +165,7 @@ HNLink.prototype.initDOM = function() {
 function HNComment(el, index, lastMaxCommentId) {
   var topBar = el.querySelector('td.default > div')
   var comment = el.querySelector('span.comment')
-  var isDeleted = /^\s*\[(?:dead|deleted|flagged|flagkilled)\]\s*$/.test(comment.firstChild.nodeValue)
+  var isDeleted = /^\s*\[\w+\]\s*$/.test(comment.firstChild.nodeValue)
 
   this.id = (!isDeleted ? Number(topBar.querySelector('a[href^=item]').href.split('=').pop()) : -1)
   this.index = index
