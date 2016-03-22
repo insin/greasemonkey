@@ -3,7 +3,7 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @version     22
+// @version     23
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -312,7 +312,7 @@ function commentPage() {
   var maxCommentId = -1
   var newCommentCount = 0
 
-  var commentNodes = document.evaluate('//center/table/tbody/tr[3]/td/table[last()]/tbody/tr', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  var commentNodes = document.evaluate('//table[@class="comment-tree"]//tr[@class="athing"]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
   for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
     var wrapper = commentNodes.snapshotItem(i)
     if (wrapper.style.height == '10px') {
