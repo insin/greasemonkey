@@ -3,7 +3,8 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @version     23
+// @grant       none
+// @version     24
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -403,16 +404,16 @@ function commentPage() {
 // Initialise pagetype-specific enhancments
 void function() {
   var path = location.pathname.slice(1)
-  if (/^(?:$|active|ask|best|news|newest|noobstories|saved|show|submitted)/.test(path)) { return linkPage }
+  if (/^(?:$|active|ask|best|news|newest|noobstories|show|submitted|upvoted)/.test(path)) { return linkPage }
   if (/^item/.test(path)) { return commentPage }
   if (/^x/.test(path)) { return (document.title.indexOf('more comments') == 0 ? commentPage : linkPage) }
   return function() {}
 }()()
 
-// Add a "saved" link to the top bar
-if (window.location.pathname !== '/saved') {
+// Add an "upvoted" link to the top bar
+if (window.location.pathname !== '/upvoted') {
   var userName = document.querySelector('span.pagetop a[href^="user?id"]').textContent
   var pageTop = document.querySelector('span.pagetop')
   pageTop.appendChild(document.createTextNode(' | '))
-  pageTop.appendChild($el('a', {href: '/saved?id=' + userName}, 'saved'))
+  pageTop.appendChild($el('a', {href: '/upvoted?id=' + userName}, 'upvoted'))
 }
