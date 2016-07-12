@@ -3,13 +3,19 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @grant       none
-// @version     25
+// @grant       GM_addStyle
+// @version     26
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
 var LAST_VISIT_TIME_KEY = ':lv'
 var MAX_COMMENT_ID_KEY = ':mc'
+
+var debug = false
+function LOG(...args) {
+  if (!debug) return
+  console.log('[HN Comment Trees]', ...args)
+}
 
 // ==================================================================== Utils ==
 
@@ -302,6 +308,11 @@ function linkPage() {
 }
 
 function commentPage() {
+  LOG('>>> commentPage')
+  
+  // Hide new built-in comment toggling
+  GM_addStyle('a.togg { display: none; }')
+
   var itemId = location.search.split('=').pop()
   var maxCommentIdKey = itemId + MAX_COMMENT_ID_KEY
   var lastVisitKey = itemId + LAST_VISIT_TIME_KEY
@@ -312,8 +323,11 @@ function commentPage() {
   }
   var maxCommentId = -1
   var newCommentCount = 0
+  LOG({itemId, maxCommentIdKey, lastVisitKey, lastMaxCommentId, lastVisit})
 
   var commentNodes = document.evaluate('//table[@class="comment-tree"]//tr[contains(@class,"athing")]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  LOG('commentNodes.snapshotLength', commentNodes.snapshotLength)
+
   for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
     var wrapper = commentNodes.snapshotItem(i)
     if (wrapper.style.height == '10px') {
@@ -330,6 +344,7 @@ function commentPage() {
     }
     comments.push(comment)
   }
+  LOG({maxCommentId, newCommentCount})
 
   function highlightNewComments(highlight) {
     comments.forEach(function(comment) {
@@ -388,6 +403,7 @@ function commentPage() {
       highlightNewComments(true)
       collapseThreadsWithoutNewComments(true)
     }
+    LOG('<<< commentPage')
   }
 
   if (location.pathname == '/item') {
@@ -399,6 +415,7 @@ function commentPage() {
       setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(' ').shift())
     }
   }
+  LOG('<<< commentPage')
 }
 
 // Initialise pagetype-specific enhancments
