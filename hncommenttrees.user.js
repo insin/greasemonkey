@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     26
+// @version     27
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -87,11 +87,15 @@ function $el(tagName, attributes, children) {
     }
     else {
       // Coerce non-element children to String and append as a text node
-      element.appendChild(document.createTextNode(''+child))
+      element.appendChild($text(''+child))
     }
   }
 
   return element
+}
+
+function $text(text) {
+  return document.createTextNode(text)
 }
 
 /**
@@ -131,7 +135,7 @@ function HNLink(linkEl, metaEl) {
   if (!this.isCommentable) { return }
   this.id = commentLink.href.split('=').pop()
   this.commentCount = (/^\d+/.test(commentLink.textContent)
-                       ? Number(commentLink.textContent.split(' ').shift())
+                       ? Number(commentLink.textContent.split(/\s/).shift())
                        : null)
   this.lastCommentCount = null
 
@@ -203,7 +207,7 @@ HNComment.prototype.addToggleControlToDOM = function() {
     this.els.topBar.style.marginBottom = '4px';
   }
   var el = this.els.topBar
-  el.insertBefore(document.createTextNode(' '), el.firstChild)
+  el.insertBefore($text(' '), el.firstChild)
   el.insertBefore(this.els.toggleControl, el.firstChild)
 }
 
@@ -279,7 +283,7 @@ HNComment.prototype._updateDOMCollapsed = function(show) {
     this.els.topBar.removeChild(this.els.topBar.lastChild)
   }
   else {
-    this.els.topBar.appendChild(document.createTextNode(
+    this.els.topBar.appendChild($text(
       (this.isDeleted ? '(' : ' | (') + children.length +
       ' child' + pluralise(children.length, 'ren') + ')'
     ))
@@ -290,7 +294,9 @@ var links = []
 var comments = []
 
 function linkPage() {
+  LOG('>>> linkPage')
   var linkNodes = document.evaluate('//tr[@class="athing"]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
+  LOG('linkNodes.snapshotLength', linkNodes.snapshotLength)
   for (var i = 0, l = linkNodes.snapshotLength; i < l; i++) {
     var linkNode = linkNodes.snapshotItem(i)
     var metaNode = linkNode.nextElementSibling
@@ -299,12 +305,14 @@ function linkPage() {
     if (lastCommentCount != null) {
       link.lastCommentCount = Number(lastCommentCount)
     }
+    LOG(link)
     links.push(link)
   }
 
   links.forEach(function(link) {
     link.initDOM()
   })
+  LOG('<<< linkPage')
 }
 
 function commentPage() {
@@ -374,7 +382,7 @@ function commentPage() {
   if (location.pathname == '/item') {
     var commentsLink = document.querySelector('td.subtext > a[href^=item]')
     if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
-      commentCount = commentsLink.textContent.split(' ').shift()
+      commentCount = commentsLink.textContent.split(/\s/).shift()
     }
   }
 
@@ -431,6 +439,6 @@ void function() {
 if (window.location.pathname !== '/upvoted') {
   var userName = document.querySelector('span.pagetop a[href^="user?id"]').textContent
   var pageTop = document.querySelector('span.pagetop')
-  pageTop.appendChild(document.createTextNode(' | '))
+  pageTop.appendChild($text(' | '))
   pageTop.appendChild($el('a', {href: '/upvoted?id=' + userName}, 'upvoted'))
 }
