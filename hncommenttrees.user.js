@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     27
+// @version     28
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -420,7 +420,7 @@ function commentPage() {
     }
     setData(lastVisitKey, ''+(new Date().getTime()))
     if (commentCount) {
-      setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(' ').shift())
+      setData(itemId + COMMENT_COUNT_KEY, commentsLink.textContent.split(/\s/).shift())
     }
   }
   LOG('<<< commentPage')
