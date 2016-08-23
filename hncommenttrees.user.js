@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     28
+// @version     29
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -175,7 +175,7 @@ HNLink.prototype.initDOM = function() {
  */
 function HNComment(el, index, lastMaxCommentId) {
   var topBar = el.querySelector('td.default > div')
-  var comment = el.querySelector('span.comment')
+  var comment = el.querySelector('div.comment')
   var isDeleted = /^\s*\[\w+\]\s*$/.test(comment.firstChild.nodeValue)
 
   this.id = (!isDeleted ? Number(topBar.querySelector('a[href^=item]').href.split('=').pop()) : -1)
