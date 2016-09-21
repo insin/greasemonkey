@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     29
+// @version     30
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -170,10 +170,8 @@ HNLink.prototype.initDOM = function() {
 /**
  * @param {Element} el the DOM element wrapping the entire comment.
  * @param {Number} index the index of the comment in the list of comments.
- * @param {Number} lastMaxCommentId the max comment id on the previous visit,
- *   should be falsy if there was none.
  */
-function HNComment(el, index, lastMaxCommentId) {
+function HNComment(el, index) {
   var topBar = el.querySelector('td.default > div')
   var comment = el.querySelector('div.comment')
   var isDeleted = /^\s*\[\w+\]\s*$/.test(comment.firstChild.nodeValue)
@@ -184,7 +182,6 @@ function HNComment(el, index, lastMaxCommentId) {
 
   this.isCollapsed = false
   this.isDeleted = isDeleted
-  this.isNew = (!!lastMaxCommentId && this.id > lastMaxCommentId)
   this.isTopLevel = (this.indent === 0)
 
   this.els = {
@@ -228,22 +225,26 @@ HNComment.prototype.children = function() {
 }
 
 /**
- * Cached getter for determining if this comment has child comments which are
- * new since the last visit to the page.
+ * Determine if this comment has child comments which are new based on a
+ * reference comment id.
  */
-HNComment.prototype.hasNewComments = function() {
-  if (typeof this._hasNewComments == 'undefined') {
-    var children = this.children(comments)
-    var foundNewComment = false
-    for (var i = 0, l = children.length; i < l; i++) {
-      if (children[i].isNew) {
-        foundNewComment = true
-        break
-      }
+HNComment.prototype.hasNewComments = function(referenceCommentId) {
+  var children = this.children(comments)
+  var foundNewComment = false
+  for (var i = 0, l = children.length; i < l; i++) {
+    if (children[i].isNew(referenceCommentId)) {
+      foundNewComment = true
+      break
     }
-    this._hasNewComments = foundNewComment
   }
-  return this._hasNewComments
+  return foundNewComment
+}
+
+/**
+ * Determine if this comment is new based on a reference comment id.
+ */
+HNComment.prototype.isNew = function(referenceCommentId) {
+  return (!!referenceCommentId && this.id > referenceCommentId)
 }
 
 /**
@@ -291,7 +292,6 @@ HNComment.prototype._updateDOMCollapsed = function(show) {
 }
 
 var links = []
-var comments = []
 
 function linkPage() {
   LOG('>>> linkPage')
@@ -314,6 +314,8 @@ function linkPage() {
   })
   LOG('<<< linkPage')
 }
+
+var comments = []
 
 function commentPage() {
   LOG('>>> commentPage')
@@ -338,34 +340,29 @@ function commentPage() {
 
   for (var i = 0, l = commentNodes.snapshotLength; i < l; i++) {
     var wrapper = commentNodes.snapshotItem(i)
-    if (wrapper.style.height == '10px') {
-      // This is a spacer row prior to a "more" link, so we've reached the end of
-      // the comments.
-      break
-    }
-    var comment = new HNComment(wrapper, i, lastMaxCommentId)
+    var comment = new HNComment(wrapper, i)
     if (comment.id > maxCommentId) {
       maxCommentId = comment.id
     }
-    if (comment.isNew) {
+    if (comment.isNew(lastMaxCommentId)) {
       newCommentCount++
     }
     comments.push(comment)
   }
   LOG({maxCommentId, newCommentCount})
 
-  function highlightNewComments(highlight) {
+  function highlightNewComments(highlight, referenceCommentId) {
     comments.forEach(function(comment) {
-      if (comment.isNew) {
+      if (comment.isNew(referenceCommentId)) {
         comment.toggleHighlighted(highlight)
       }
     })
   }
 
-  function collapseThreadsWithoutNewComments(collapse) {
+  function collapseThreadsWithoutNewComments(collapse, referenceCommentId) {
     for (var i = 0, l = comments.length; i < l; i++) {
       var comment = comments[i]
-      if (!comment.isNew && !comment.hasNewComments(comments)) {
+      if (!comment.isNew(referenceCommentId) && !comment.hasNewComments(referenceCommentId)) {
         comment.toggleCollapsed(collapse)
         i += comment.children(comments).length
       }
@@ -408,10 +405,42 @@ function commentPage() {
     }
 
     if (highlightNew) {
-      highlightNewComments(true)
-      collapseThreadsWithoutNewComments(true)
+      highlightNewComments(true, lastMaxCommentId)
+      collapseThreadsWithoutNewComments(true, lastMaxCommentId)
     }
-    LOG('<<< commentPage')
+  }
+  else {
+    var sortedCommentIds = comments.map(comment => comment.id)
+                                   .filter(id => id !== -1)
+                                   .sort((a, b) => a - b)
+    var showNewCommentsAfter = sortedCommentIds.length - 1
+
+    var el = (document.querySelector('form[action="/r"]') ||
+              document.querySelector('td.subtext'))
+    
+    var $label = $el('span', null, 'show new since comment #' + showNewCommentsAfter)
+    var $range = $el('input', {
+      type: 'range',
+      min: 1,
+      max: sortedCommentIds.length - 1,
+      onChange(e) { showNewCommentsAfter = Number(e.target.value) },
+      onInput(e) { $label.innerText = 'show new since comment #' + e.target.value },
+      style: {margin: 0, verticalAlign: 'middle'},
+      value: sortedCommentIds.length - 1,
+    })
+    var $button = $el('button', {
+      type: 'button',
+      onClick(e) {
+        var referenceCommentId = sortedCommentIds[showNewCommentsAfter - 1]
+        highlightNewComments(true, referenceCommentId)
+        collapseThreadsWithoutNewComments(true, referenceCommentId)
+        el.removeChild($timeTravelControl)
+      },
+      style: {fontFamily: 'monospace', fontSize: '10pt'}
+    }, $label)
+    var $timeTravelControl = $el('div', {style: {marginTop: '1em'}}, $range, ' ', $button)
+  
+    el.appendChild($timeTravelControl)
   }
 
   if (location.pathname == '/item') {
