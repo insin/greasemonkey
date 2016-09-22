@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     31
+// @version     32
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -407,11 +407,11 @@ function commentPage() {
         )
       , $el('div', null
         , $checkboxControl('highlight new comments', highlightNew, function() {
-            highlightNewComments(this.checked)
+            highlightNewComments(this.checked, lastMaxCommentId)
           })
         , ' '
         , $checkboxControl('collapse threads without new comments', highlightNew, function() {
-            collapseThreadsWithoutNewComments(this.checked)
+            collapseThreadsWithoutNewComments(this.checked, lastMaxCommentId)
           })
         )
       ))
