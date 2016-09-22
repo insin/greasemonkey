@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     30
+// @version     31
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -176,7 +176,16 @@ function HNComment(el, index) {
   var comment = el.querySelector('div.comment')
   var isDeleted = /^\s*\[\w+\]\s*$/.test(comment.firstChild.nodeValue)
 
-  this.id = (!isDeleted ? Number(topBar.querySelector('a[href^=item]').href.split('=').pop()) : -1)
+  if (isDeleted) {
+    this.id = -1
+    this.when = ''
+  }
+  else {
+    var permalink = topBar.querySelector('a[href^=item]')
+    this.id = Number(permalink.href.split('=').pop())
+    this.when = permalink.textContent
+  }
+  
   this.index = index
   this.indent = Number(el.querySelector('img[src="s.gif"]').width)
 
@@ -316,6 +325,7 @@ function linkPage() {
 }
 
 var comments = []
+var commentsById = {}
 
 function commentPage() {
   LOG('>>> commentPage')
@@ -348,6 +358,9 @@ function commentPage() {
       newCommentCount++
     }
     comments.push(comment)
+    if (comment.id !== -1) {
+      commentsById[comment.id] = comment
+    }
   }
   LOG({maxCommentId, newCommentCount})
 
@@ -375,11 +388,11 @@ function commentPage() {
     comment.addToggleControlToDOM()
   })
 
-  var commentCount
+  var commentCount = 0
   if (location.pathname == '/item') {
     var commentsLink = document.querySelector('td.subtext > a[href^=item]')
     if (commentsLink && /^\d+/.test(commentsLink.textContent)) {
-      commentCount = commentsLink.textContent.split(/\s/).shift()
+      commentCount = Number(commentsLink.textContent.split(/\s/).shift())
     }
   }
 
@@ -409,7 +422,7 @@ function commentPage() {
       collapseThreadsWithoutNewComments(true, lastMaxCommentId)
     }
   }
-  else {
+  else if (commentCount > 1) {
     var sortedCommentIds = comments.map(comment => comment.id)
                                    .filter(id => id !== -1)
                                    .sort((a, b) => a - b)
@@ -418,13 +431,21 @@ function commentPage() {
     var el = (document.querySelector('form[action="/r"]') ||
               document.querySelector('td.subtext'))
     
-    var $label = $el('span', null, 'show new since comment #' + showNewCommentsAfter)
+    function getButtonLabel() {
+      var howMany = sortedCommentIds.length - showNewCommentsAfter
+      var fromWhen = commentsById[sortedCommentIds[showNewCommentsAfter - 1]].when
+      return `highlight ${howMany} comment${pluralise(howMany)} from ${fromWhen}`
+    }
+    
+    var $buttonLabel = $el('span', null, getButtonLabel())
     var $range = $el('input', {
       type: 'range',
       min: 1,
       max: sortedCommentIds.length - 1,
-      onChange(e) { showNewCommentsAfter = Number(e.target.value) },
-      onInput(e) { $label.innerText = 'show new since comment #' + e.target.value },
+      onInput(e) {
+        showNewCommentsAfter = Number(e.target.value)
+        $buttonLabel.innerText = getButtonLabel()
+      },
       style: {margin: 0, verticalAlign: 'middle'},
       value: sortedCommentIds.length - 1,
     })
@@ -437,7 +458,7 @@ function commentPage() {
         el.removeChild($timeTravelControl)
       },
       style: {fontFamily: 'monospace', fontSize: '10pt'}
-    }, $label)
+    }, $buttonLabel)
     var $timeTravelControl = $el('div', {style: {marginTop: '1em'}}, $range, ' ', $button)
   
     el.appendChild($timeTravelControl)
