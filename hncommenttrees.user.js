@@ -4,7 +4,7 @@
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
 // @grant       GM_addStyle
-// @version     32
+// @version     33
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -433,7 +433,7 @@ function commentPage() {
     
     function getButtonLabel() {
       var howMany = sortedCommentIds.length - showNewCommentsAfter
-      var fromWhen = commentsById[sortedCommentIds[showNewCommentsAfter - 1]].when
+      var fromWhen = commentsById[sortedCommentIds[showNewCommentsAfter]].when
       return `highlight ${howMany} comment${pluralise(howMany)} from ${fromWhen}`
     }
     
