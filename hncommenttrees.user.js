@@ -3,8 +3,7 @@
 // @description Hide/show comment trees and highlight new comments since last visit in Hacker News
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://news.ycombinator.com/*
-// @grant       GM_addStyle
-// @version     33
+// @version     34
 // ==/UserScript==
 
 var COMMENT_COUNT_KEY = ':cc'
@@ -329,9 +328,12 @@ var commentsById = {}
 
 function commentPage() {
   LOG('>>> commentPage')
-  
+
   // Hide new built-in comment toggling
-  GM_addStyle('a.togg { display: none; }')
+  var style = document.createElement('style')
+  style.type = 'text/css'
+  style.innerHTML = 'a.togg { display: none; }'
+  document.getElementsByTagName('head')[0].appendChild(style)
 
   var itemId = location.search.split('=').pop()
   var maxCommentIdKey = itemId + MAX_COMMENT_ID_KEY
