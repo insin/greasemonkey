@@ -3,14 +3,18 @@
 // @description Allows hiding of Retweets and Retweetlikes (likes which appear as if they were Retweets) in your Twitter feed
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://twitter.com/
-// @version     1
+// @version     2
 // ==/UserScript==
+
+const CIRCLE = 'display: inline-block; width: 20px; height: 20px; vertical-align: text-bottom; border-radius: 50%'
 
 // Identify retweets by by their retweet id in element data
 const RETWEET_SELECTOR = 'div[data-retweet-id]'
+const RETWEET_BG = 'background-color: rgb(245,252,248)'
 
 // Identify retweetlikes by the heart icon in their context header
 const RETWEETLIKE_SELECTOR = '.tweet-context .Icon--heartBadge'
+const RETWEETLIKE_BG = 'background-color: rgb(253,246,248)'
 
 // Default to hiding Retweetlikes because GTFO, Twitter
 let hideRetweets = localStorage.tem_hideRetweets === 'true'
@@ -24,16 +28,20 @@ let getAllTweets = () => document.querySelectorAll('#stream-items-id > .stream-i
 let $controls = document.createElement('div')
 $controls.style = 'padding: 0 16px 16px 16px'
 $controls.innerHTML = `
-  <div>
+  <div style="margin-bottom: 3px">
     <label>
       <input type="checkbox" class="tem_hideRetweets">
-      Hide <span class="tem_retweetCount">0</span> Retweet<span class="tem_retweetPlural">s</span>
+      Hide <span class="tem_retweetCount">0</span>
+      Retweet<span class="tem_retweetPlural">s</span>
+      <span style="${RETWEET_BG}; ${CIRCLE}"></span>
     </label>
   </div>
   <div>
     <label>
       <input type="checkbox" class="tem_hideRetweetLikes">
-      Hide <span class="tem_retweetLikeCount">0</span> Retweetlike<span class="tem_retweetLikePlural">s</span>
+      Hide <span class="tem_retweetLikeCount">0</span>
+      Retweetlike<span class="tem_retweetLikePlural">s</span>
+      <span style="${RETWEETLIKE_BG}; ${CIRCLE}"></span>
     </label>
   </div>
 `
@@ -77,12 +85,14 @@ function processTweets(tweets) {
   for (let tweet of tweets) {
     if (tweet.querySelector(RETWEETLIKE_SELECTOR)) {
       retweetLikeCount++
+      tweet.style = RETWEETLIKE_BG
       if (hideRetweetLikes) {
         tweet.style.display = 'none'
       }
     }
     else if (tweet.querySelector(RETWEET_SELECTOR)) {
       retweetCount++
+      tweet.style = RETWEET_BG
       if (hideRetweets) {
         tweet.style.display = 'none'
       }
