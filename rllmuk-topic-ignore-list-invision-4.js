@@ -3,15 +3,33 @@
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://www.rllmukforum.com/index.php*
-// @version     2
+// @version     3
 // ==/UserScript==
 
 let ignoredTopics = localStorage.til_ignoredTopics ? JSON.parse(localStorage.til_ignoredTopics) : []
 let ignoredTopicIds = ignoredTopics.map(topic => topic.id)
 
+function addStyle(css) {
+  let $style = document.createElement('style')
+  $style.appendChild(document.createTextNode(css))
+  document.querySelector('head').appendChild($style)
+}
+
 function UnreadContentPage() {
   const TOPIC_LINK_ID_RE = /index\.php\?\/topic\/(\d+)/
 
+  addStyle(`
+    .til_ignoreControl {
+      visibility: hidden;
+    }
+    li.ipsStreamItem:hover .til_ignoreControl {
+      visibility: visible;
+    }
+  `)
+
+  /**
+   * Hide a topic if it's in the ignored list, otherwise add ignore controls to it.
+   */
   function processTopic($topic) {
     let $topicLink = $topic.querySelector('a[href*="index.php?/topic/"][data-linktype="link"]')
     let id = TOPIC_LINK_ID_RE.exec($topicLink.href)[1]
@@ -21,8 +39,10 @@ function UnreadContentPage() {
     }
     else {
       let $topicStats = $topic.querySelector('ul.ipsStreamItem_stats')
-      $topicStats.insertAdjacentHTML('afterbegin', `
-        <li><a style="cursor: pointer"><i class="fa fa-trash"></i></a></li>
+      $topicStats.insertAdjacentHTML('beforeend', `
+        <li class="til_ignoreControl">
+          <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
+        </li>
       `)
       $topicStats.querySelector('i.fa-trash').addEventListener('click', () => {
         if (!confirm(`Are you sure you want to ignore "${title}"?`)) return
@@ -33,30 +53,32 @@ function UnreadContentPage() {
     }
   }
 
-  function filterTopics($el) {
-    // Hide or add ignore controls to topics
+  /**
+   * Process topics within a topic container and watch for a new topic container being added.
+   * When you click "Load more activity", a new <div> is added to the end of the topic container.
+   */
+  function processTopicContainer($el) {
     Array.from($el.querySelectorAll(':scope > li.ipsStreamItem'), processTopic)
 
-    // Watch for a new topic container being added
     new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.addedNodes[0].tagName === 'DIV') {
-          filterTopics(mutation.addedNodes[0])
+          processTopicContainer(mutation.addedNodes[0])
         }
       })
     }).observe($el, {childList: true})
   }
 
-  filterTopics(document.querySelector('ol.ipsStream'))
+  processTopicContainer(document.querySelector('ol.ipsStream'))
 }
 
 function ForumPage() {
-  let $style = document.createElement('style')
-  $style.appendChild(document.createTextNode(`
+  addStyle(`
     .til_ignoreControl {
       display: table-cell;
-      vertical-align: middle;
       min-width: 24px;
+      vertical-align: middle;
+      visibility: hidden;
     }
     @media screen and (max-width:979px) {
       .til_ignoreControl {
@@ -65,9 +87,14 @@ function ForumPage() {
         bottom: 16px;
       }
     }
-  `))
-  document.querySelector('head').appendChild($style)
+    li.ipsDataItem:hover .til_ignoreControl {
+      visibility: visible;
+    }
+  `)
 
+  /**
+   * Hide a topic if it's in the ignored list, otherwise add ignore controls to it.
+   */
   function processTopic($topic) {
     let id = $topic.dataset.rowid
     if (!id) return
