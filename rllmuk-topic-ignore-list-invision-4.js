@@ -3,11 +3,33 @@
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
 // @match       https://www.rllmukforum.com/index.php*
-// @version     3
+// @version     4
 // ==/UserScript==
 
 let ignoredTopics = localStorage.til_ignoredTopics ? JSON.parse(localStorage.til_ignoredTopics) : []
 let ignoredTopicIds = ignoredTopics.map(topic => topic.id)
+let showIgnoredTopics = false
+
+function toggleIgnoreTopic(id, title, $topic) {
+  if (!ignoredTopicIds.includes(id)) {
+    ignoredTopicIds.unshift(id)
+    ignoredTopics.unshift({id, title})
+  }
+  else {
+    let index = ignoredTopicIds.indexOf(id)
+    ignoredTopicIds.splice(index, 1)
+    ignoredTopics.splice(index, 1)
+  }
+  localStorage.til_ignoredTopics = JSON.stringify(ignoredTopics)
+  toggleIgnoreClasses($topic)
+}
+
+function toggleIgnoreClasses($topic) {
+  $topic.classList.toggle('til_ignored')
+  if (showIgnoredTopics) {
+    $topic.classList.toggle('til_show')
+  }
+}
 
 function addStyle(css) {
   let $style = document.createElement('style')
@@ -22,6 +44,16 @@ function UnreadContentPage() {
     .til_ignoreControl {
       visibility: hidden;
     }
+    .til_ignored {
+      display: none;
+    }
+    .til_ignored.til_show {
+      display: block;
+      background-color: #fee;
+    }
+    .til_ignored.til_show::after {
+      border-color: transparent #fee transparent transparent !important;
+    }
     li.ipsStreamItem:hover .til_ignoreControl {
       visibility: visible;
     }
@@ -35,22 +67,17 @@ function UnreadContentPage() {
     let id = TOPIC_LINK_ID_RE.exec($topicLink.href)[1]
     let title = $topicLink.innerText.trim()
     if (ignoredTopicIds.includes(id)) {
-      $topic.style.display = 'none'
+      toggleIgnoreClasses($topic)
     }
-    else {
-      let $topicStats = $topic.querySelector('ul.ipsStreamItem_stats')
-      $topicStats.insertAdjacentHTML('beforeend', `
-        <li class="til_ignoreControl">
-          <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
-        </li>
-      `)
-      $topicStats.querySelector('i.fa-trash').addEventListener('click', () => {
-        if (!confirm(`Are you sure you want to ignore "${title}"?`)) return
-        ignoredTopics.unshift({id, title})
-        localStorage.til_ignoredTopics = JSON.stringify(ignoredTopics)
-        $topic.style.display = 'none'
-      })
-    }
+    let $topicStats = $topic.querySelector('ul.ipsStreamItem_stats')
+    $topicStats.insertAdjacentHTML('beforeend', `
+      <li class="til_ignoreControl">
+        <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
+      </li>
+    `)
+    $topicStats.querySelector('i.fa-trash').addEventListener('click', () => {
+      toggleIgnoreTopic(id, title, $topic)
+    })
   }
 
   /**
@@ -80,6 +107,13 @@ function ForumPage() {
       vertical-align: middle;
       visibility: hidden;
     }
+    .til_ignored {
+      display: none;
+    }
+    .til_ignored.til_show {
+      display: block;
+      background-color: #fee !important;
+    }
     @media screen and (max-width:979px) {
       .til_ignoreControl {
         position: absolute;
@@ -101,22 +135,16 @@ function ForumPage() {
     let $topicLink = $topic.querySelector('h4.ipsDataItem_title > a')
     let title = $topicLink.innerText.trim()
     if (ignoredTopicIds.includes(id)) {
-      $topic.style.display = 'none'
+      toggleIgnoreClasses($topic)
     }
-    else {
-      $topic.insertAdjacentHTML('beforeend', `
-        <div class="til_ignoreControl ipsType_light ipsType_blendLinks">
-          <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
-        <div>
-      `)
-      $topic.querySelector('i.fa-trash').addEventListener('click', () => {
-        if (!confirm(`Are you sure you want to ignore "${title}"?`)) return
-        ignoredTopicIds.unshift(id)
-        ignoredTopics.unshift({id, title})
-        localStorage.til_ignoredTopics = JSON.stringify(ignoredTopics)
-        $topic.style.display = 'none'
-      })
-    }
+    $topic.insertAdjacentHTML('beforeend', `
+      <div class="til_ignoreControl ipsType_light ipsType_blendLinks">
+        <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
+      <div>
+    `)
+    $topic.querySelector('i.fa-trash').addEventListener('click', () => {
+      toggleIgnoreTopic(id, title, $topic)
+    })
   }
 
   // Initial list of topics
@@ -130,9 +158,34 @@ function ForumPage() {
   ).observe(document.querySelector('ol.cTopicList'), {childList: true})
 }
 
+function registerContextMenu() {
+  let menu = document.createElement('menu')
+  menu.setAttribute('id', 'gm-registered-menu')
+  menu.setAttribute('type', 'context')
+  document.body.appendChild(menu)
+  document.body.setAttribute('contextmenu', 'gm-registered-menu')
+
+  let menuItem = document.createElement('menuitem')
+  menuItem.type = 'checkbox'
+  menuItem.textContent = 'Show Ignored Topics'
+  menuItem.addEventListener('click', () => {
+    showIgnoredTopics = !showIgnoredTopics
+    for (let $topic of document.querySelectorAll('.til_ignored')) {
+      $topic.classList.toggle('til_show')
+    }
+  }, true)
+  menu.appendChild(menuItem)
+}
+
+let page
 if (location.href.includes('index.php?/discover/unread')) {
-  UnreadContentPage()
+  page = UnreadContentPage
 }
 else if (location.href.includes('index.php?/forum/')) {
-  ForumPage()
+  page = ForumPage
+}
+
+if (page) {
+  page()
+  registerContextMenu()
 }
