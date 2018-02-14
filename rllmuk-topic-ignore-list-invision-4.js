@@ -2,8 +2,10 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
+// @version     5
 // @match       https://www.rllmukforum.com/index.php*
-// @version     4
+// @grant       GM_registerMenuCommand
+// @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // ==/UserScript==
 
 let ignoredTopics = localStorage.til_ignoredTopics ? JSON.parse(localStorage.til_ignoredTopics) : []
@@ -158,25 +160,6 @@ function ForumPage() {
   ).observe(document.querySelector('ol.cTopicList'), {childList: true})
 }
 
-function registerContextMenu() {
-  let menu = document.createElement('menu')
-  menu.setAttribute('id', 'gm-registered-menu')
-  menu.setAttribute('type', 'context')
-  document.body.appendChild(menu)
-  document.body.setAttribute('contextmenu', 'gm-registered-menu')
-
-  let menuItem = document.createElement('menuitem')
-  menuItem.type = 'checkbox'
-  menuItem.textContent = 'Show Ignored Topics'
-  menuItem.addEventListener('click', () => {
-    showIgnoredTopics = !showIgnoredTopics
-    for (let $topic of document.querySelectorAll('.til_ignored')) {
-      $topic.classList.toggle('til_show')
-    }
-  }, true)
-  menu.appendChild(menuItem)
-}
-
 let page
 if (location.href.includes('index.php?/discover/unread')) {
   page = UnreadContentPage
@@ -187,5 +170,10 @@ else if (location.href.includes('index.php?/forum/')) {
 
 if (page) {
   page()
-  registerContextMenu()
+  GM_registerMenuCommand('Show Ignored Topics', () => {
+    showIgnoredTopics = !showIgnoredTopics
+    for (let $topic of document.querySelectorAll('.til_ignored')) {
+      $topic.classList.toggle('til_show')
+    }
+  })
 }
