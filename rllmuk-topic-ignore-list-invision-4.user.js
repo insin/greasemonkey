@@ -2,7 +2,7 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     5
+// @version     6
 // @match       https://www.rllmukforum.com/index.php*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
@@ -160,6 +160,59 @@ function ForumPage() {
   ).observe(document.querySelector('ol.cTopicList'), {childList: true})
 }
 
+function toggleShowIgnoredTopics() {
+  showIgnoredTopics = !showIgnoredTopics
+  for (let $topic of document.querySelectorAll('.til_ignored')) {
+    $topic.classList.toggle('til_show')
+  }
+}
+
+function exportIgnoredTopics() {
+  fetch('https://api.github.com/gists', {
+    body: JSON.stringify({
+      description: 'Rllmuk Ignored Topics Export',
+      files: {
+        'ignoredtopics.json': {
+          content: JSON.stringify(ignoredTopics)
+        }
+      },
+      public: false,
+    }),
+    headers: {'Content-Type': 'application/json;charset=UTF-8'},
+    method: 'POST',
+    mode: 'cors',
+  })
+  .then(res => res.json())
+  .then(response => prompt('Gist URL for exported ignored topics:', response.html_url))
+  .catch(error => {
+    console.error('Rllmuk Topic Ignore List error:', error)
+    alert('There was an error exporting your ignored topics ⚠️')
+  })
+}
+
+function importIgnoredTopics() {
+  let url = prompt('Gist URL to import ignored topics from:')
+  if (!/^https:\/\/gist\.github\.com\/(\w+\/)?[a-z\d]+$/.test(url)) {
+    return alert('Please enter a Gist URL 🙏')
+  }
+  let id = url.split('/').pop()
+  fetch(`https://api.github.com/gists/${id}`, {mode: 'cors'})
+  .then(res => res.json())
+  .then(response => {
+    if (!('ignoredtopics.json' in response.files)) {
+      return alert("The Gist didn't contain an ignoredtopics.json 😲")
+    }
+    ignoredTopics = JSON.parse(response.files['ignoredtopics.json'].content)
+    ignoredTopicIds = ignoredTopics.map(topic => topic.id)
+    localStorage.til_ignoredTopics = response.files['ignoredtopics.json'].content
+    alert('Imported Ignored Topics - refresh the page to apply changes 🔄')
+  })
+  .catch(error => {
+    console.error('Rllmuk Topic Ignore List error:', {url, error})
+    alert('There was an error importing your ignored topics ⚠️')
+  })
+}
+
 let page
 if (location.href.includes('index.php?/discover/unread')) {
   page = UnreadContentPage
@@ -170,10 +223,7 @@ else if (location.href.includes('index.php?/forum/')) {
 
 if (page) {
   page()
-  GM_registerMenuCommand('Show Ignored Topics', () => {
-    showIgnoredTopics = !showIgnoredTopics
-    for (let $topic of document.querySelectorAll('.til_ignored')) {
-      $topic.classList.toggle('til_show')
-    }
-  })
+  GM_registerMenuCommand('Show Ignored Topics', toggleShowIgnoredTopics)
+  GM_registerMenuCommand('Export Ignored Topics', exportIgnoredTopics)
+  GM_registerMenuCommand('Import Ignored Topics', importIgnoredTopics)
 }
