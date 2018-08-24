@@ -2,7 +2,7 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     6
+// @version     7
 // @match       https://www.rllmukforum.com/index.php*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
@@ -66,6 +66,10 @@ function UnreadContentPage() {
    */
   function processTopic($topic) {
     let $topicLink = $topic.querySelector('a[href*="index.php?/topic/"][data-linktype="link"]')
+    if (!$topicLink) {
+      return
+    }
+
     let id = TOPIC_LINK_ID_RE.exec($topicLink.href)[1]
     let title = $topicLink.innerText.trim()
     if (ignoredTopicIds.includes(id)) {
