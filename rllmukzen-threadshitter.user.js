@@ -2,7 +2,7 @@
 // @name        Rllmukzen Threadshitter
 // @description Really ignore ignored users
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     1
+// @version     2
 // @match       https://www.rllmukforum.com/index.php*
 // ==/UserScript==
 
@@ -20,13 +20,32 @@ function TopicPage() {
     }
   `)
 
-  // Hide comments which quote ignored users
-  let ignoredUserIds = JSON.parse(localStorage.ignoredUserIds || '[]')
-  document.querySelectorAll('[data-ipsquote-userid]').forEach(el => {
-    if (!ignoredUserIds.includes(el.dataset.ipsquoteUserid)) return
-    let comment = el.closest('article.ipsComment')
-    if (comment.style.display == 'none') return
-    comment.style.display = 'none'
+  function processPage() {
+    // Hide comments which quote ignored users
+    let ignoredUserIds = JSON.parse(localStorage.ignoredUserIds || '[]')
+    let quotes = document.querySelectorAll('[data-ipsquote-userid]')
+    quotes.forEach(el => {
+      if (!ignoredUserIds.includes(el.dataset.ipsquoteUserid)) return
+      let comment = el.closest('article.ipsComment')
+      if (comment.style.display == 'none') return
+      comment.style.display = 'none'
+    })
+  }
+
+  // Process initial posts
+  processPage()
+
+  // Watch for posts being replaced when paging
+  new MutationObserver(mutations =>
+    mutations.forEach(mutation => {
+      if (mutation.oldValue == 'true') {
+        processPage()
+      }
+    })
+  ).observe(document.querySelector('div.cTopic'), {
+    attributes: true,
+    attributeFilter: ['animating'],
+    attributeOldValue: true,
   })
 }
 
