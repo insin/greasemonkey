@@ -2,7 +2,7 @@
 // @name        Rllmukzen Threadshitter
 // @description Really ignore ignored users
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     2
+// @version     3
 // @match       https://www.rllmukforum.com/index.php*
 // ==/UserScript==
 
@@ -13,6 +13,8 @@ function addStyle(css) {
 }
 
 function TopicPage() {
+  let ignoredUserIds = JSON.parse(localStorage.ignoredUserIds || '[]')
+
   // Hide "You've chosen to ignore content by <ignored user>"
   addStyle(`
     .ipsComment_ignored {
@@ -20,16 +22,18 @@ function TopicPage() {
     }
   `)
 
-  function processPage() {
-    // Hide comments which quote ignored users
-    let ignoredUserIds = JSON.parse(localStorage.ignoredUserIds || '[]')
-    let quotes = document.querySelectorAll('[data-ipsquote-userid]')
+  // Hide posts which quote ignored users
+  function processQuotes(quotes) {
     quotes.forEach(el => {
       if (!ignoredUserIds.includes(el.dataset.ipsquoteUserid)) return
       let comment = el.closest('article.ipsComment')
       if (comment.style.display == 'none') return
       comment.style.display = 'none'
     })
+  }
+
+  function processPage() {
+    processQuotes(document.querySelectorAll('[data-ipsquote-userid]'))
   }
 
   // Process initial posts
@@ -46,6 +50,17 @@ function TopicPage() {
     attributes: true,
     attributeFilter: ['animating'],
     attributeOldValue: true,
+  })
+
+  // Watch for new posts being loaded into the current page
+  new MutationObserver(mutations =>
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(post => {
+        processQuotes(post.querySelectorAll('[data-ipsquote-userid]'))
+      })
+    })
+  ).observe(document.querySelector('#elPostFeed > form'), {
+    childList: true,
   })
 }
 
