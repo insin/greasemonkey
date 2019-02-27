@@ -2,7 +2,7 @@
 // @name        Rllmukzen Threadshitter
 // @description Really ignore ignored users
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     4
+// @version     5
 // @match       https://www.rllmukforum.com/index.php*
 // ==/UserScript==
 
@@ -49,6 +49,25 @@ function TopicPage() {
     )
   }
 
+  // Hide the unread comment separator if all subseqent posts are hidden
+  function updateUnreadCommentSeparator() {
+    let separator = document.querySelector('hr.ipsCommentUnreadSeperator')
+    if (!separator) return
+    let hasVisiblePost = false
+    let sibling = separator.nextElementSibling
+    while (sibling) {
+      if (sibling.matches('article.ipsComment') &&
+          !sibling.classList.contains('ipsHide') &&
+          sibling.style.display != 'none') {
+        hasVisiblePost = true
+        break
+      }
+      sibling = sibling.nextElementSibling
+    }
+    separator.style.display = hasVisiblePost ? '' : 'none'
+  }
+
+  // Process all posts on the current page
   function processPosts(context = document) {
     processQuotes(context)
     processMentions(context)
@@ -56,12 +75,14 @@ function TopicPage() {
 
   // Process initial posts
   processPosts()
+  updateUnreadCommentSeparator()
 
   // Watch for posts being replaced when paging
   new MutationObserver(mutations =>
     mutations.forEach(mutation => {
       if (mutation.oldValue == 'true') {
         processPosts()
+        updateUnreadCommentSeparator()
       }
     })
   ).observe(document.querySelector('div.cTopic'), {
@@ -71,11 +92,12 @@ function TopicPage() {
   })
 
   // Watch for new posts being loaded into the current page
-  new MutationObserver(mutations =>
+  new MutationObserver(mutations => {
     mutations.forEach(mutation =>
       mutation.addedNodes.forEach(processPosts)
     )
-  ).observe(document.querySelector('#elPostFeed > form'), {
+    updateUnreadCommentSeparator()
+  }).observe(document.querySelector('#elPostFeed > form'), {
     childList: true,
   })
 }
