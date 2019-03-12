@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name        Eurogamer: declutter, detox & disengage
+// @name        Eurogamer declutter, detox & disengage
 // @description Removes some clutter, hides comments and hides articles on the homepage when they're clicked
-// @version     1
+// @version     2
 // @grant       none
 // @match       https://www.eurogamer.net/*
 // ==/UserScript==
@@ -54,7 +54,7 @@ padding-bottom: 32px;
 document.head.appendChild($style)
 
 let debug = false
-let ignoredGames = ['FORTNITE']
+let ignoredGames = ['FORTNITE', 'RED DEAD REDEMPTION 2']
 
 function xpathSelector(xpathExpression, contextNode = document) {
   let result = document.evaluate(xpathExpression, contextNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
@@ -103,12 +103,12 @@ function homePage() {
   function hideClickedArticles() {
     for (link of document.querySelectorAll('p.title > a')) {
       if (clickedArticles.includes(link.pathname)) {
-        let listItem = link.closest('div.list-item')
-        if (listItem.parentNode.className.startsWith('grid-')) {
-          listItem.parentNode.style.display = 'none'
+        let nodeToHide = link.closest('div.list-item')
+        if (nodeToHide.parentNode.className.startsWith('grid-')) {
+          nodeToHide = nodeToHide.parentNode
         }
-        else {
-          listItem.style.display = 'none'
+        if (nodeToHide.style.display !== 'none') {
+          nodeToHide.style.display = 'none'
         }
       }
     }
@@ -123,11 +123,23 @@ function homePage() {
     }
   }
 
+  function getClickedArticleLink(e) {
+    let node = e.target
+    if (node.tagName === 'SPAN' && node.classList.contains('prefix')) {
+      node = node.parentNode
+    }
+    if (node.tagName === 'A' && /^\/articles\//.test(node.pathname)) {
+      return node
+    }
+    return null
+  }
+
   document.addEventListener('click', (e) => {
-    if (e.button < 2 && e.target.tagName === 'A' && /^\/articles\//.test(e.target.pathname)) {
+    let articleLink = getClickedArticleLink(e)
+    if (e.button < 2 && articleLink != null) {
       // Hold ctrl + shift when clicking an article to hide it without opening it
       if (debug || (e.shiftKey && e.ctrlKey)) e.preventDefault()
-      clickedArticles.unshift(e.target.pathname)
+      clickedArticles.unshift(articleLink.pathname)
       localStorage.setItem('clickedArticles', JSON.stringify(clickedArticles))
       hideClickedArticles()
     }
