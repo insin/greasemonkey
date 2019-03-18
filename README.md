@@ -29,9 +29,9 @@ Other minor tweaks:
 
 > Metadata in this user script is configured for [Rllmuk](https://rllmukforum.com/), which doesn't use URL rewriting, but it might be portable across other Invision 4 forums which use the default theme
 
-Allows you to hide topics you're not interested in the Unread Content and Forum views.
+Allows you to hide topics and forums you're not interested in the Unread Content and Forum views.
 
-Adds a "Show Ignored Posts" menu command to your user script manager (or the right click context menu for Greasemonkey) for unignoring topics.
+Adds a "Toggle Ignored Topic Display" menu command to your user script manager (or the right click context menu for Greasemonkey) for unignoring topics and forums.
 
 ![Animated example of Rllmuk Topic Ignore List being used to ignore and unignore topics](resources/rllmuk-topic-ignore-list-invision-4.gif)
 
