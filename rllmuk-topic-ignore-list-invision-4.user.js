@@ -2,7 +2,7 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics and forums
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     8
+// @version     9
 // @match       https://www.rllmukforum.com/index.php*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
@@ -128,6 +128,10 @@ function UnreadContentPage() {
     $forumLink.parentNode.querySelector('i.fa-trash').addEventListener('click', () => {
       toggleIgnoreForum(forumId, forumTitle)
     })
+
+    if (!$topicLink.href.endsWith('&do=getNewComment')) {
+      $topicLink.href += '&do=getNewComment'
+    }
 
     return api
   }
