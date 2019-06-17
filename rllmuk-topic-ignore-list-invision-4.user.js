@@ -2,7 +2,7 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics and forums
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     9
+// @version     10
 // @match       https://www.rllmukforum.com/index.php*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
@@ -194,25 +194,50 @@ function ForumPage() {
     }
   `)
 
-  /**
-   * Hide a topic if it's in the ignored list, otherwise add ignore controls to it.
-   */
-  function processTopic($topic) {
-    let id = $topic.dataset.rowid
-    if (!id) return
-    let $topicLink = $topic.querySelector('h4.ipsDataItem_title > a')
-    let title = $topicLink.innerText.trim()
-    if (ignoredTopicIds.includes(id)) {
-      toggleIgnoreClasses($topic)
+  function Topic($topic) {
+    let topicId = $topic.dataset.rowid
+    if (!topicId) {
+      return null
     }
+
+    let $topicLink = $topic.querySelector('h4.ipsDataItem_title a')
+    let topicTitle = $topicLink.innerText.trim()
+
+    let api = {
+      updateClassNames() {
+        let isTopicIgnored = ignoredTopicIds.includes(topicId)
+        $topic.classList.toggle('til_ignored', isTopicIgnored)
+        $topic.classList.toggle('til_show', showIgnoredTopics && isTopicIgnored)
+      }
+    }
+
     $topic.insertAdjacentHTML('beforeend', `
       <div class="til_ignoreControl ipsType_light ipsType_blendLinks">
         <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
       <div>
     `)
+
     $topic.querySelector('i.fa-trash').addEventListener('click', () => {
-      toggleIgnoreTopic(id, title, $topic)
+      toggleIgnoreTopic(topicId, topicTitle, api)
     })
+
+    if (!$topicLink.href.endsWith('&do=getNewComment')) {
+      $topicLink.href += '&do=getNewComment'
+    }
+
+    return api
+  }
+
+  /**
+   * Add ignore controls to a topic and hide it if it's in the ignored list.
+   */
+  function processTopic($topic) {
+    let topic = Topic($topic)
+    if (topic == null) {
+      return
+    }
+    topics.push(topic)
+    topic.updateClassNames()
   }
 
   // Initial list of topics
