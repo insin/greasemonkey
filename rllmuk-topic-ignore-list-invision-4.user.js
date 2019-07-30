@@ -2,46 +2,70 @@
 // @name        Rllmuk Topic Ignore List (Invision 4)
 // @description Ignore topics and forums
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     10
+// @version     11
 // @match       https://www.rllmukforum.com/index.php*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // ==/UserScript==
 
+const IGNORED_TOPICS_STORAGE = 'rit_ignoredTopics'
+const IGNORED_FORUMS_STORAGE = 'rit_ignoredForums'
+
 let topics = []
 
-let ignoredTopics = localStorage.til_ignoredTopics ? JSON.parse(localStorage.til_ignoredTopics) : []
-let ignoredTopicIds = ignoredTopics.map(topic => topic.id)
-let ignoredForums = localStorage.til_ignoredForums ? JSON.parse(localStorage.til_ignoredForums) : []
-let ignoredForumIds = ignoredForums.map(forum => forum.id)
+let ignoredTopicsJson
+let ignoredTopics
+let ignoredTopicIds
+let ignoredForumsJson
+let ignoredForums
+let ignoredForumIds
 
-let showIgnoredTopics = false
+let config = {
+  showIgnoredTopics: false,
+  topicLinksLatestPost: true,
+}
 
-function toggleIgnoreTopic(id, title, topic) {
+// Support an initial load of config from til_ prefixes to support people moving
+// from the existing user script to the extension.
+function loadIgnoreConfig() {
+  ignoredTopicsJson = localStorage[IGNORED_TOPICS_STORAGE] || localStorage.til_ignoredTopics
+  ignoredTopics = ignoredTopicsJson ? JSON.parse(ignoredTopicsJson) : []
+  ignoredTopicIds = ignoredTopics.map(topic => topic.id)
+  ignoredForumsJson = localStorage[IGNORED_FORUMS_STORAGE] || localStorage.til_ignoredForums
+  ignoredForums = ignoredForumsJson ? JSON.parse(ignoredForumsJson) : []
+  ignoredForumIds = ignoredForums.map(forum => forum.id)
+}
+
+function toggleIgnoreTopic(id, topic) {
   if (!ignoredTopicIds.includes(id)) {
     ignoredTopicIds.unshift(id)
-    ignoredTopics.unshift({id, title})
+    ignoredTopics.unshift({id})
   }
   else {
     let index = ignoredTopicIds.indexOf(id)
     ignoredTopicIds.splice(index, 1)
     ignoredTopics.splice(index, 1)
   }
-  localStorage.til_ignoredTopics = JSON.stringify(ignoredTopics)
+  localStorage[IGNORED_TOPICS_STORAGE] = JSON.stringify(ignoredTopics)
   topic.updateClassNames()
 }
 
-function toggleIgnoreForum(id, title) {
+function toggleIgnoreForum(id) {
   if (!ignoredForumIds.includes(id)) {
     ignoredForumIds.unshift(id)
-    ignoredForums.unshift({id, title})
+    ignoredForums.unshift({id})
   }
   else {
     let index = ignoredForumIds.indexOf(id)
     ignoredForumIds.splice(index, 1)
     ignoredForums.splice(index, 1)
   }
-  localStorage.til_ignoredForums = JSON.stringify(ignoredForums)
+  localStorage[IGNORED_FORUMS_STORAGE] = JSON.stringify(ignoredForums)
+  topics.forEach(topic => topic.updateClassNames())
+}
+
+function toggleShowIgnoredTopics(showIgnoredTopics) {
+  config.showIgnoredTopics = showIgnoredTopics
   topics.forEach(topic => topic.updateClassNames())
 }
 
@@ -55,39 +79,46 @@ function UnreadContentPage() {
   const TOPIC_LINK_ID_RE = /index\.php\?\/topic\/(\d+)/
   const FORUM_LINK_ID_RE = /index\.php\?\/forum\/(\d+)/
 
+  let view
+
   addStyle(`
-    .til_ignoreControl {
+    .rit_ignoreControl {
       visibility: hidden;
     }
-    .til_ignored {
+    .rit_ignored {
       display: none;
     }
-    .til_ignored.til_show {
+    .rit_ignored.rit_show {
       display: block;
       background-color: #fee;
     }
-    .til_ignored.til_show::after {
+    .rit_ignored.rit_show::after {
       border-color: transparent #fee transparent transparent !important;
     }
-    li.ipsStreamItem:hover .til_ignoreControl {
+    li.ipsStreamItem:hover .rit_ignoreControl {
       visibility: visible;
     }
-    .til_ignoreForumControl {
+    .rit_ignoreForumControl {
       opacity: 0.5;
     }
-    .til_ignoreForumControl:hover {
+    .rit_ignoreForumControl:hover {
       opacity: 1;
     }
-    .til_ignoredForum .til_ignoreTopicControl {
+    .rit_ignoredForum .rit_ignoreTopicControl {
       display: none;
     }
-    .til_ignoredTopic .til_ignoreForumControl {
+    .rit_ignoredTopic .rit_ignoreForumControl {
       display: none;
     }
-    .til_ignoredTopic.til_ignoredForum .til_ignoreForumControl {
+    .rit_ignoredTopic.rit_ignoredForum .rit_ignoreForumControl {
       display: inline;
     }
   `)
+
+  function getView() {
+    let $activeViewButton = document.querySelector('a.ipsButton_primary[data-action="switchView"]')
+    return $activeViewButton ? $activeViewButton.textContent.trim() : null
+  }
 
   function Topic($topic) {
     let $topicLink = $topic.querySelector('a[href*="index.php?/topic/"][data-linktype="link"]')
@@ -98,38 +129,47 @@ function UnreadContentPage() {
 
     let topicId = TOPIC_LINK_ID_RE.exec($topicLink.href)[1]
     let forumId = FORUM_LINK_ID_RE.exec($forumLink.href)[1]
-    let topicTitle = $topicLink.innerText.trim()
-    let forumTitle = $forumLink.innerText.trim()
 
     let api = {
       updateClassNames() {
         let isTopicIgnored = ignoredTopicIds.includes(topicId)
         let isForumIgnored = ignoredForumIds.includes(forumId)
-        $topic.classList.toggle('til_ignoredTopic', isTopicIgnored)
-        $topic.classList.toggle('til_ignoredForum', isForumIgnored)
-        $topic.classList.toggle('til_ignored', isTopicIgnored || isForumIgnored)
-        $topic.classList.toggle('til_show', showIgnoredTopics && (isTopicIgnored || isForumIgnored))
+        $topic.classList.toggle('rit_ignoredTopic', isTopicIgnored)
+        $topic.classList.toggle('rit_ignoredForum', isForumIgnored)
+        $topic.classList.toggle('rit_ignored', isTopicIgnored || isForumIgnored)
+        $topic.classList.toggle('rit_show', config.showIgnoredTopics && (isTopicIgnored || isForumIgnored))
       }
     }
 
-    let $topicStats = $topic.querySelector('ul.ipsStreamItem_stats')
-    $topicStats.insertAdjacentHTML('beforeend', `
-      <li class="til_ignoreControl til_ignoreTopicControl">
-        <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
-      </li>
-    `)
-    $topicStats.querySelector('i.fa-trash').addEventListener('click', () => {
-      toggleIgnoreTopic(topicId, topicTitle, api)
+    let $ignoreTopicContainer
+    if (view == 'Condensed') {
+      $ignoreTopicContainer = $topic.querySelector('ul.ipsStreamItem_stats')
+      $ignoreTopicContainer.insertAdjacentHTML('beforeend', `
+        <li class="rit_ignoreControl rit_ignoreTopicControl">
+          <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
+        </li>
+      `)
+    }
+    else {
+      $ignoreTopicContainer = $topicLink.parentNode
+      $ignoreTopicContainer.insertAdjacentHTML('beforeend', `
+        <a style="cursor: pointer"class="rit_ignoreControl rit_ignoreTopicControl">
+          <i class="fa fa-trash"></i>
+        </a>
+      `)
+    }
+    $ignoreTopicContainer.querySelector('i.fa-trash').addEventListener('click', () => {
+      toggleIgnoreTopic(topicId, api)
     })
 
     $forumLink.parentNode.insertAdjacentHTML('beforeend', `
-        <a style="cursor: pointer" class="til_ignoreControl til_ignoreForumControl"><i class="fa fa-trash"></i></a>
+      <a style="cursor: pointer" class="rit_ignoreControl rit_ignoreForumControl"><i class="fa fa-trash"></i></a>
     `)
     $forumLink.parentNode.querySelector('i.fa-trash').addEventListener('click', () => {
-      toggleIgnoreForum(forumId, forumTitle)
+      toggleIgnoreForum(forumId)
     })
 
-    if (!$topicLink.href.endsWith('&do=getNewComment')) {
+    if (config.topicLinksLatestPost && !$topicLink.href.endsWith('&do=getNewComment')) {
       $topicLink.href += '&do=getNewComment'
     }
 
@@ -157,39 +197,51 @@ function UnreadContentPage() {
 
     new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.addedNodes[0].tagName === 'DIV') {
+        if (view != getView()) {
+          processView()
+        }
+        else if (mutation.addedNodes[0].tagName === 'DIV') {
           processTopicContainer(mutation.addedNodes[0])
         }
       })
     }).observe($el, {childList: true})
   }
 
-  processTopicContainer(document.querySelector('ol.ipsStream'))
+  /**
+   * Reset handling of topics when the view changes between Condensed and Expanded.
+   */
+  function processView() {
+    topics = []
+    view = getView()
+    processTopicContainer(document.querySelector('ol.ipsStream'))
+  }
+
+  processView()
 }
 
 function ForumPage() {
   addStyle(`
-    .til_ignoreControl {
+    .rit_ignoreControl {
       display: table-cell;
       min-width: 24px;
       vertical-align: middle;
       visibility: hidden;
     }
-    .til_ignored {
+    .rit_ignored {
       display: none;
     }
-    .til_ignored.til_show {
+    .rit_ignored.rit_show {
       display: block;
       background-color: #fee !important;
     }
     @media screen and (max-width:979px) {
-      .til_ignoreControl {
+      .rit_ignoreControl {
         position: absolute;
         left: 12px;
         bottom: 16px;
       }
     }
-    li.ipsDataItem:hover .til_ignoreControl {
+    li.ipsDataItem:hover .rit_ignoreControl {
       visibility: visible;
     }
   `)
@@ -201,27 +253,26 @@ function ForumPage() {
     }
 
     let $topicLink = $topic.querySelector('h4.ipsDataItem_title a')
-    let topicTitle = $topicLink.innerText.trim()
 
     let api = {
       updateClassNames() {
         let isTopicIgnored = ignoredTopicIds.includes(topicId)
-        $topic.classList.toggle('til_ignored', isTopicIgnored)
-        $topic.classList.toggle('til_show', showIgnoredTopics && isTopicIgnored)
+        $topic.classList.toggle('rit_ignored', isTopicIgnored)
+        $topic.classList.toggle('rit_show', config.showIgnoredTopics && isTopicIgnored)
       }
     }
 
     $topic.insertAdjacentHTML('beforeend', `
-      <div class="til_ignoreControl ipsType_light ipsType_blendLinks">
+      <div class="rit_ignoreControl ipsType_light ipsType_blendLinks">
         <a style="cursor: pointer"><i class="fa fa-trash"></i></a>
       <div>
     `)
 
     $topic.querySelector('i.fa-trash').addEventListener('click', () => {
-      toggleIgnoreTopic(topicId, topicTitle, api)
+      toggleIgnoreTopic(topicId, api)
     })
 
-    if (!$topicLink.href.endsWith('&do=getNewComment')) {
+    if (config.topicLinksLatestPost && !$topicLink.href.endsWith('&do=getNewComment')) {
       $topicLink.href += '&do=getNewComment'
     }
 
@@ -251,59 +302,6 @@ function ForumPage() {
   ).observe(document.querySelector('ol.cTopicList'), {childList: true})
 }
 
-function toggleShowIgnoredTopics() {
-  showIgnoredTopics = !showIgnoredTopics
-  topics.forEach(topic => topic.updateClassNames())
-}
-
-/*
-function exportIgnoredTopics() {
-  fetch('https://api.github.com/gists', {
-    body: JSON.stringify({
-      description: 'Rllmuk Ignored Topics Export',
-      files: {
-        'ignoredtopics.json': {
-          content: JSON.stringify(ignoredTopics)
-        }
-      },
-      public: false,
-    }),
-    headers: {'Content-Type': 'application/json;charset=UTF-8'},
-    method: 'POST',
-    mode: 'cors',
-  })
-  .then(res => res.json())
-  .then(response => prompt('Gist URL for exported ignored topics:', response.html_url))
-  .catch(error => {
-    console.error('Rllmuk Topic Ignore List error:', error)
-    alert('There was an error exporting your ignored topics ⚠️')
-  })
-}
-
-function importIgnoredTopics() {
-  let url = prompt('Gist URL to import ignored topics from:')
-  if (!/^https:\/\/gist\.github\.com\/(\w+\/)?[a-z\d]+$/.test(url)) {
-    return alert('Please enter a Gist URL 🙏')
-  }
-  let id = url.split('/').pop()
-  fetch(`https://api.github.com/gists/${id}`, {mode: 'cors'})
-  .then(res => res.json())
-  .then(response => {
-    if (!('ignoredtopics.json' in response.files)) {
-      return alert("The Gist didn't contain an ignoredtopics.json 😲")
-    }
-    ignoredTopics = JSON.parse(response.files['ignoredtopics.json'].content)
-    ignoredTopicIds = ignoredTopics.map(topic => topic.id)
-    localStorage.til_ignoredTopics = response.files['ignoredtopics.json'].content
-    alert('Imported Ignored Topics - refresh the page to apply changes 🔄')
-  })
-  .catch(error => {
-    console.error('Rllmuk Topic Ignore List error:', {url, error})
-    alert('There was an error importing your ignored topics ⚠️')
-  })
-}
-*/
-
 let page
 if (location.href.includes('index.php?/discover/unread')) {
   page = UnreadContentPage
@@ -313,8 +311,9 @@ else if (location.href.includes('index.php?/forum/')) {
 }
 
 if (page) {
+  loadIgnoreConfig()
   page()
-  GM_registerMenuCommand('Toggle Ignored Topic Display', toggleShowIgnoredTopics)
-  // GM_registerMenuCommand('Export Ignored Topics', exportIgnoredTopics)
-  // GM_registerMenuCommand('Import Ignored Topics', importIgnoredTopics)
+  GM_registerMenuCommand('Toggle Ignored Topic Display', () => {
+    toggleShowIgnoredTopics(!config.showIgnoredTopics)
+  })
 }
