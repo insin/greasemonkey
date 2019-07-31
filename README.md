@@ -25,26 +25,4 @@ Other minor tweaks:
 - An "upvoted" link is always included in the header bar to make it easier to revisit upvoted stories
 - The default collapse control on the right of each comment is replaced with a collapse control on the left hand side.
 
-## [Rllmuk Topic Ignore List (Invision 4)](https://greasyfork.org/en/scripts/38321-rllmuk-topic-ignore-list-invision-4)
-
-> Metadata in this user script is configured for [Rllmuk](https://rllmukforum.com/), which doesn't use URL rewriting, but it might be portable across other Invision 4 forums which use the default theme
-
-Allows you to hide topics and forums you're not interested in the Unread Content and Forum views.
-
-Adds a "Toggle Ignored Topic Display" menu command to your user script manager (or the right click context menu for Greasemonkey) for unignoring topics and forums.
-
-![Animated example of Rllmuk Topic Ignore List being used to ignore and unignore topics](resources/rllmuk-topic-ignore-list-invision-4.gif)
-
-## [Twitter Engagement Minus](https://greasyfork.org/en/scripts/38200-twitter-engagement-minus)
-
-Adds controls to manage extra "engagement" on [Twitter](http://twitter.com/).
-
-"Retweetlikes" - Likes which appear in your feed as if they were Retweets, due to Twitter's new algorithmic timeline nonsense - are hidden by default.
-
-![Screenshot of the Hide Retweets and Hide Retweetlikes controls added by Twitter Engagement Minus](resources/twitter-engagement-minus-controls.png)
-
-Retweets and Retweetlikes in the timeline are highlighted to differentiate them more from original tweets by people you follow.
-
-![Screenshot of Retweets and Retweetlikes being highlighted by Twitter Engagement Minus](resources/twitter-engagement-minus-highlights.png)
-
 ## MIT Licensed
