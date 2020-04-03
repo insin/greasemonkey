@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Eurogamer declutter, detox & disengage
 // @description Removes some clutter, hides comments and hides articles on the homepage when they're clicked
-// @version     2
+// @version     3
 // @grant       none
 // @match       https://www.eurogamer.net/*
 // ==/UserScript==
@@ -36,7 +36,8 @@ figure.video figcaption,
  *******************************************/
 a.comment-count,
 #comments,
-#comments-rail {
+#comments-rail,
+p.comment-cta {
 display: none !important;
 }
 
@@ -54,7 +55,7 @@ padding-bottom: 32px;
 document.head.appendChild($style)
 
 let debug = false
-let ignoredGames = ['FORTNITE', 'RED DEAD REDEMPTION 2']
+let ignoredGames = ['FORTNITE', 'RED DEAD REDEMPTION 2', 'CYBERPUNK 2077', 'DEATH STRANDING', 'POKÉMON SWORD', 'POKÉMON GO']
 
 function xpathSelector(xpathExpression, contextNode = document) {
   let result = document.evaluate(xpathExpression, contextNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
@@ -134,11 +135,26 @@ function homePage() {
     return null
   }
 
+  document.addEventListener('auxclick', (e) => {
+    console.log({e})
+  })
+
   document.addEventListener('click', (e) => {
     let articleLink = getClickedArticleLink(e)
-    if (e.button < 2 && articleLink != null) {
+    if (e.button == 0 && articleLink != null) {
       // Hold ctrl + shift when clicking an article to hide it without opening it
       if (debug || (e.shiftKey && e.ctrlKey)) e.preventDefault()
+      clickedArticles.unshift(articleLink.pathname)
+      localStorage.setItem('clickedArticles', JSON.stringify(clickedArticles))
+      hideClickedArticles()
+    }
+  })
+
+  document.addEventListener('auxclick', (e) => {
+    let articleLink = getClickedArticleLink(e)
+    if (e.button == 1 && articleLink != null) {
+      // Hold ctrl when clicking an article to hide it without opening it
+      if (debug || e.ctrlKey) e.preventDefault()
       clickedArticles.unshift(articleLink.pathname)
       localStorage.setItem('clickedArticles', JSON.stringify(clickedArticles))
       hideClickedArticles()

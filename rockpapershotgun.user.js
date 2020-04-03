@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        RPS declutter & disengage
 // @description Removes some clutter and hides posts on the homepage when they're clicked
-// @version     1
+// @version     2
 // @grant       none
 // @match       https://www.rockpapershotgun.com/*
 // ==/UserScript==
@@ -19,6 +19,7 @@ $style.innerText = `
 /* Bargain bucket / tips sections */
 .below > .spotlight-bar,
 /* Subscription forms */
+.newsletter-promo,
 .support-us,
 .support-us-promo {
     display: none !important;
@@ -74,7 +75,7 @@ function postsPage() {
     }
     hideEmptySections()
   }
-  
+
   function getClickHref(target) {
     if (target.tagName === 'A') return target.pathname
     if (target.tagName === 'IMG' && target.parentNode.tagName === 'A') return target.parentNode.pathname
@@ -82,9 +83,19 @@ function postsPage() {
   }
 
   document.addEventListener('click', (e) => {
-    if (e.button < 2 && POST_RE.test(getClickHref(e.target))) {
+    if (e.button == 0 && POST_RE.test(getClickHref(e.target))) {
       // Hold ctrl + shift when clicking a post to hide it without opening it
       if (debug || (e.shiftKey && e.ctrlKey)) e.preventDefault()
+      clickedPosts.unshift(getClickHref(e.target))
+      localStorage.setItem('clickedPosts', JSON.stringify(clickedPosts))
+      hideClickedPosts()
+    }
+  })
+
+  document.addEventListener('auxclick', (e) => {
+    if (e.button == 1 && POST_RE.test(getClickHref(e.target))) {
+      // Hold ctrl + shift when clicking a post to hide it without opening it
+      if (debug || e.ctrlKey) e.preventDefault()
       clickedPosts.unshift(getClickHref(e.target))
       localStorage.setItem('clickedPosts', JSON.stringify(clickedPosts))
       hideClickedPosts()
