@@ -2,6 +2,7 @@
 // @name        RPS declutter & disengage
 // @description Removes some clutter and hides posts on the homepage when they're clicked
 // @version     2
+// @namespace   https://github.com/insin/greasemonkey
 // @grant       none
 // @match       https://www.rockpapershotgun.com/*
 // ==/UserScript==

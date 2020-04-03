@@ -2,6 +2,7 @@
 // @name        Eurogamer declutter, detox & disengage
 // @description Removes some clutter, hides comments and hides articles on the homepage when they're clicked
 // @version     3
+// @namespace   https://github.com/insin/greasemonkey
 // @grant       none
 // @match       https://www.eurogamer.net/*
 // ==/UserScript==
