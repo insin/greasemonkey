@@ -1,8 +1,7 @@
 // ==UserScript==
 // @name        RPS declutter & disengage
 // @description Removes some clutter and hides posts on the homepage when they're clicked
-// @version     2
-// @namespace   https://github.com/insin/greasemonkey
+// @version     3
 // @grant       none
 // @match       https://www.rockpapershotgun.com/*
 // ==/UserScript==
@@ -83,6 +82,17 @@ function postsPage() {
     return ''
   }
 
+  function markAllAsRead(e) {
+    e.preventDefault()
+		for (link of document.querySelectorAll('p.title > a')) {
+      if (!clickedPosts.includes(link.pathname)) {
+        clickedPosts.unshift(link.pathname)
+      }
+    }
+    localStorage.setItem('clickedPosts', JSON.stringify(clickedPosts))
+    hideClickedPosts()
+  }
+
   document.addEventListener('click', (e) => {
     if (e.button == 0 && POST_RE.test(getClickHref(e.target))) {
       // Hold ctrl + shift when clicking a post to hide it without opening it
@@ -92,7 +102,7 @@ function postsPage() {
       hideClickedPosts()
     }
   })
-
+  
   document.addEventListener('auxclick', (e) => {
     if (e.button == 1 && POST_RE.test(getClickHref(e.target))) {
       // Hold ctrl + shift when clicking a post to hide it without opening it
@@ -119,6 +129,19 @@ function postsPage() {
   }).observe(document.querySelector('#right-rail'), {childList: true})
 
   hideClickedPosts()
+
+  let latestPosts = document.querySelector('p.section-title')
+  if (latestPosts != null) {
+    latestPosts.style.display = 'flex'
+    latestPosts.style.alignItems = 'center'
+    latestPosts.style.justifyContent = 'space-between'
+    let button = document.createElement('a')
+    button.className = 'button'
+    button.innerText = 'Mark all as read'
+    button.href = '#'
+    button.addEventListener('click', markAllAsRead)
+    latestPosts.appendChild(button)
+  }
 }
 
 if (/^\/(page\/\d+\/)?$/.test(location.pathname)) {
