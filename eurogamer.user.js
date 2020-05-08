@@ -1,8 +1,7 @@
 // ==UserScript==
 // @name        Eurogamer declutter, detox & disengage
 // @description Removes some clutter, hides comments and hides articles on the homepage when they're clicked
-// @version     3
-// @namespace   https://github.com/insin/greasemonkey
+// @version     4
 // @grant       none
 // @match       https://www.eurogamer.net/*
 // ==/UserScript==
@@ -136,9 +135,16 @@ function homePage() {
     return null
   }
 
-  document.addEventListener('auxclick', (e) => {
-    console.log({e})
-  })
+  function markAllAsRead(e) {
+    e.preventDefault()
+		for (link of document.querySelectorAll('p.title > a')) {
+      if (!clickedArticles.includes(link.pathname)) {
+        clickedArticles.unshift(link.pathname)
+      }
+    }
+    localStorage.setItem('clickedArticles', JSON.stringify(clickedArticles))
+    hideClickedArticles()
+  }
 
   document.addEventListener('click', (e) => {
     let articleLink = getClickedArticleLink(e)
@@ -164,6 +170,21 @@ function homePage() {
 
   hideClickedArticles()
   hideIgnoredGames()
+
+  let popularNow = document.querySelector('p.section-title')
+  if (popularNow != null) {
+    popularNow.style.clear = 'none'
+    popularNow.style.display = 'flex'
+    popularNow.style.alignItems = 'center'
+    popularNow.style.justifyContent = 'space-between'
+    let button = document.createElement('a')
+    button.className = 'button'
+    button.style.float = 'right'
+    button.innerText = 'Mark all as read'
+    button.href = '#'
+    button.addEventListener('click', markAllAsRead)
+    popularNow.parentNode.insertBefore(button, popularNow)
+  }
 }
 
 if (location.pathname === '/') {
