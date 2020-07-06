@@ -2,7 +2,7 @@
 // @name        Cook'd and Bomb'd Ignore Topics
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     1
+// @version     2
 // @match       https://www.cookdandbombd.co.uk/forums/index.php/board*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
@@ -113,8 +113,11 @@ function ForumPage() {
   Array.from(document.querySelectorAll('#messageindex table.table_grid tbody tr'), processTopicRow)
 }
 
-loadIgnoreConfig()
-ForumPage()
-GM_registerMenuCommand('Toggle Ignored Topic Display', () => {
-  toggleShowIgnoredTopics(!config.showIgnoredTopics)
-})
+// Already-processed pages seem to be getting cached on back navigation… sometimes
+if (!document.querySelector('a.cab_ignoreTopic')) {
+  loadIgnoreConfig()
+  ForumPage()
+  GM_registerMenuCommand('Toggle Ignored Topic Display', () => {
+    toggleShowIgnoredTopics(!config.showIgnoredTopics)
+  })
+}
