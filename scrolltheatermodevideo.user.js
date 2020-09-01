@@ -1,11 +1,24 @@
 // ==UserScript==
 // @name        Scroll Theater Mode Video
 // @description Automatically scrolls to the top of the video if it's in theater mode
-// @version     3
+// @version     4
 // @namespace   https://github.com/insin/greasemonkey
 // @grant       none
 // @match       https://www.youtube.com/*
 // ==/UserScript==
+
+// Un-fix the header when not viewing fullscreen video so we can scroll past it
+let $style = document.createElement('style')
+$style.textContent = `
+body:not(.no-scroll) #masthead-container {
+  position: static !important;
+}
+body:not(.no-scroll) #page-manager {
+  margin-top: 0 !important;
+}
+`
+document.head.appendChild($style)
+
 let player
 let progressBar
 
