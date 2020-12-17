@@ -2,14 +2,17 @@
 // @name        Cook'd and Bomb'd Ignore Topics
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     2
+// @version     3
 // @match       https://www.cookdandbombd.co.uk/forums/index.php/board*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // ==/UserScript==
 
 const IGNORED_TOPICS_STORAGE = 'cab_ignoredTopics'
-const TOPIC_ID_RE = /topic,(\d+)/
+
+// Logged out: index.php/topic,12345
+// Logged in: index.php?topic=12345
+const TOPIC_ID_RE = /index.php[?/]topic[,=](\d+)/
 
 let topics = []
 
