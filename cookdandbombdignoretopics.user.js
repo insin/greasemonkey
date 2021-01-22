@@ -2,8 +2,9 @@
 // @name        Cook'd and Bomb'd Ignore Topics
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     3
+// @version     4
 // @match       https://www.cookdandbombd.co.uk/forums/index.php/board*
+// @match       https://www.cookdandbombd.co.uk/forums/index.php?action=unread*
 // @grant       GM_registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // ==/UserScript==
@@ -113,7 +114,7 @@ function ForumPage() {
     topic.updateClassNames()
   }
 
-  Array.from(document.querySelectorAll('#messageindex table.table_grid tbody tr'), processTopicRow)
+  Array.from(document.querySelectorAll('#main_content_section table.table_grid tbody tr'), processTopicRow)
 }
 
 // Already-processed pages seem to be getting cached on back navigation… sometimes
