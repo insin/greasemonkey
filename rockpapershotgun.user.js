@@ -1,73 +1,66 @@
 // ==UserScript==
-// @name        RPS declutter & disengage
-// @description Removes some clutter and hides posts on the homepage when they're clicked
-// @version     3
+// @name        RPS Hide Read Posts
+// @description Hides posts on the RPS homepage when they're clicked & adds a "Mark all as read" button
+// @version     4
+// @namespace   https://github.com/insin/greasemonkey
 // @grant       none
-// @match       https://www.rockpapershotgun.com/*
+// @match       https://www.rockpapershotgun.com/
 // ==/UserScript==
+
+// @ts-ignore
+let debug = false
 
 let $style = document.createElement('style')
 $style.innerText = `
-/* Space left by top ad header */
-#page-wrapper > .leaderboards:first-child,
-/* Spaces left by ad boxes */
-.mpu,
-/* Space left by bottom ad container */
-.below > .billboard-container,
-/* Space left by bottom recommendations */
-.below > #recommendations,
-/* Bargain bucket / tips sections */
-.below > .spotlight-bar,
-/* Subscription forms */
-.newsletter-promo,
-.support-us,
-.support-us-promo {
-    display: none !important;
+/* Prevent the top section taking up space when posts are removed */
+#content_above {
+  min-height: unset !important;
 }
-
-/* Don't take up extra space when posts are removed. */
-.above {
-  min-height: 0 !important;
-}`
+`
 document.head.appendChild($style)
 
-let debug = false
-const POST_RE = /^\/\d{4}\/\d{2}\/\d{2}\//
+/**
+ * @param {HTMLElement} section
+ * @returns {boolean}
+ */
+function areAllPostsHidden(section) {
+  return Array.from(section.querySelectorAll('article.summary')).every(
+    (article) => article.parentElement.style.display === 'none'
+  )
+}
+
+/**
+ * @param {HTMLElement} target
+ * @returns {string}
+ */
+function getPostClickHref(target) {
+  if (target.tagName === 'A' && target.closest('article.summary')) {
+    return /** @type {HTMLAnchorElement} */ (target).pathname
+  }
+  return ''
+}
 
 function postsPage() {
+  /** @type {string[]} */
   let clickedPosts = JSON.parse(localStorage.getItem('clickedPosts') || '[]')
 
   function hideEmptySections() {
-    for (let section of document.querySelectorAll('.spotlight')) {
-      if (section.dataset.hidden) continue
-      let allChildrenHidden = Array.from(section.childNodes)
-                                   .filter(node => node.nodeType === Node.ELEMENT_NODE)
-                                   .every(node => node.style.display === 'none')
-      if (allChildrenHidden) {
-        section.dataset.hidden = 'true'
-        let container = section.closest('.spotlight-container')
-        if (container) {
-          container.style.display = 'none'
-        }
-      }
-    }
-
-    for (let section of document.querySelectorAll('.sidebar-mpu-container > .small-list')) {
-      if (section.dataset.hidden) continue
-      let allChildrenHidden = Array.from(section.childNodes)
-                                   .filter(node => node.nodeType === Node.ELEMENT_NODE)
-                                   .every(node => node.style.display === 'none')
-      if (allChildrenHidden) {
-        section.dataset.hidden = 'true'
-        section.closest('.sidebar-mpu-container').style.display = 'none'
+    for (let section of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(
+      '#content_above, section.featured_tag_shelf, section.latest_shelf, section.shelf, section.supporters_shelf'
+    ))) {
+      if (section.style.display === 'none') continue
+      if (areAllPostsHidden(section)) {
+        section.style.display = 'none'
       }
     }
   }
 
   function hideClickedPosts() {
-    for (link of document.querySelectorAll('p.title > a')) {
+    for (let link of /** @type {NodeListOf<HTMLAnchorElement>} */ (document.querySelectorAll(
+      'a.link_overlay'
+    ))) {
       if (clickedPosts.includes(link.pathname)) {
-        let nodeToHide = link.closest('div.list-item') || link.closest('div.spotlight-item') || link.closest('article.blog-post')
+        let nodeToHide = link.closest('li')
         if (nodeToHide && nodeToHide.style.display !== 'none') {
           nodeToHide.style.display = 'none'
         }
@@ -76,15 +69,11 @@ function postsPage() {
     hideEmptySections()
   }
 
-  function getClickHref(target) {
-    if (target.tagName === 'A') return target.pathname
-    if (target.tagName === 'IMG' && target.parentNode.tagName === 'A') return target.parentNode.pathname
-    return ''
-  }
-
   function markAllAsRead(e) {
     e.preventDefault()
-		for (link of document.querySelectorAll('p.title > a')) {
+    for (let link of /** @type {NodeListOf<HTMLAnchorElement>} */ (document.querySelectorAll(
+      'a.link_overlay'
+    ))) {
       if (!clickedPosts.includes(link.pathname)) {
         clickedPosts.unshift(link.pathname)
       }
@@ -94,56 +83,40 @@ function postsPage() {
   }
 
   document.addEventListener('click', (e) => {
-    if (e.button == 0 && POST_RE.test(getClickHref(e.target))) {
+    let target = /** @type {HTMLElement} */ (e.target)
+    if (e.button === 0 && getPostClickHref(target)) {
       // Hold ctrl + shift when clicking a post to hide it without opening it
       if (debug || (e.shiftKey && e.ctrlKey)) e.preventDefault()
-      clickedPosts.unshift(getClickHref(e.target))
+      clickedPosts.unshift(getPostClickHref(target))
       localStorage.setItem('clickedPosts', JSON.stringify(clickedPosts))
       hideClickedPosts()
     }
   })
-  
+
   document.addEventListener('auxclick', (e) => {
-    if (e.button == 1 && POST_RE.test(getClickHref(e.target))) {
-      // Hold ctrl + shift when clicking a post to hide it without opening it
+    let target = /** @type {HTMLElement} */ (e.target)
+    if (e.button === 1 && getPostClickHref(target)) {
+      // Hold ctrl when middle-clicking a post to hide it without opening it
       if (debug || e.ctrlKey) e.preventDefault()
-      clickedPosts.unshift(getClickHref(e.target))
+      clickedPosts.unshift(getPostClickHref(target))
       localStorage.setItem('clickedPosts', JSON.stringify(clickedPosts))
       hideClickedPosts()
     }
   })
 
-  // Handle "More posts" sidebar sections when they appear
-  new MutationObserver((mutations) => {
-    let newMpuContainers = false
-    for (let mutation of mutations) {
-      for (let node of mutation.addedNodes) {
-        if (node.classList.contains('sidebar-mpu-container')) {
-          newMpuContainers = true
-        }
-      }
-    }
-    if (newMpuContainers) {
-      hideClickedPosts()
-    }
-  }).observe(document.querySelector('#right-rail'), {childList: true})
-
-  hideClickedPosts()
-
-  let latestPosts = document.querySelector('p.section-title')
-  if (latestPosts != null) {
-    latestPosts.style.display = 'flex'
-    latestPosts.style.alignItems = 'center'
-    latestPosts.style.justifyContent = 'space-between'
+  let topButtons = document.querySelector('div.commercial.button_group')
+  if (topButtons != null) {
     let button = document.createElement('a')
-    button.className = 'button'
+    button.className = 'button supporter'
     button.innerText = 'Mark all as read'
     button.href = '#'
     button.addEventListener('click', markAllAsRead)
-    latestPosts.appendChild(button)
+    topButtons.appendChild(button)
   }
+
+  hideClickedPosts()
 }
 
-if (/^\/(page\/\d+\/)?$/.test(location.pathname)) {
+if (location.pathname === '/') {
   postsPage()
 }
