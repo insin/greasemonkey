@@ -2,10 +2,10 @@
 // @name        Cook'd and Bomb'd Ignore Topics
 // @description Ignore topics
 // @namespace   https://github.com/insin/greasemonkey/
-// @version     4
+// @version     5
 // @match       https://www.cookdandbombd.co.uk/forums/index.php/board*
 // @match       https://www.cookdandbombd.co.uk/forums/index.php?action=unread*
-// @grant       GM_registerMenuCommand
+// @grant       GM.registerMenuCommand
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // ==/UserScript==
 
@@ -121,7 +121,7 @@ function ForumPage() {
 if (!document.querySelector('a.cab_ignoreTopic')) {
   loadIgnoreConfig()
   ForumPage()
-  GM_registerMenuCommand('Toggle Ignored Topic Display', () => {
+  GM.registerMenuCommand('Toggle Ignored Topic Display', () => {
     toggleShowIgnoredTopics(!config.showIgnoredTopics)
   })
 }
