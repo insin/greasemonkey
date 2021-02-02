@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        RPS Hide Read Posts
 // @description Hides posts on the RPS homepage when they're clicked & adds a "Mark all as read" button
-// @version     4
+// @version     5
 // @namespace   https://github.com/insin/greasemonkey
 // @grant       none
 // @match       https://www.rockpapershotgun.com/
@@ -9,15 +9,6 @@
 
 // @ts-ignore
 let debug = false
-
-let $style = document.createElement('style')
-$style.innerText = `
-/* Prevent the top section taking up space when posts are removed */
-#content_above {
-  min-height: unset !important;
-}
-`
-document.head.appendChild($style)
 
 /**
  * @param {HTMLElement} section
@@ -41,6 +32,15 @@ function getPostClickHref(target) {
 }
 
 function postsPage() {
+  let $style = document.createElement('style')
+  $style.innerText = `
+  /* Prevent the top section taking up space when posts are removed */
+  #content_above {
+    min-height: unset !important;
+  }
+  `
+  document.head.appendChild($style)
+
   /** @type {string[]} */
   let clickedPosts = JSON.parse(localStorage.getItem('clickedPosts') || '[]')
 
@@ -111,12 +111,13 @@ function postsPage() {
     button.innerText = 'Mark all as read'
     button.href = '#'
     button.addEventListener('click', markAllAsRead)
+    button.id = 'mark-all-as-read'
     topButtons.appendChild(button)
   }
 
   hideClickedPosts()
 }
 
-if (location.pathname === '/') {
+if (location.pathname === '/' && !document.querySelector('#mark-all-as-read')) {
   postsPage()
 }
